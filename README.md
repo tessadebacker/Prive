@@ -10,8 +10,10 @@ De app past zich aan het niveau van het kind aan:
 - **Voor elke nieuwe tafel krijgt het kind eerst een korte les**, vóór er getoetst wordt: wat vermenigvuldigen betekent (groepjes vormen), de tafel stap voor stap opbouwen, eventueel een handig verband met een tafel die het al kent, en tellen in sprongen met twee korte controlevragen. Pas daarna start de oefenmodus voor die tafel.
 - Elk rekenfeit (bv. "6 × 7") moet 3 keer na elkaar goed beantwoord worden voor het als "gekend" telt.
 - Zodra alle 10 feiten van een tafel gekend zijn, verschijnt er een felicitatie en gaat het kind meteen door naar de les van de volgende tafel.
+- **Een oefensessie ("les") duurt maximaal 20 oefeningen**, zoals bij Duolingo. Na 20 sommen krijgt het kind een overzichtje (score + aanmoediging) met de keuze om een nieuwe les te starten of terug naar het startscherm te gaan. Wordt een tafel al volledig beheerst vóór de 20 oefeningen om zijn, dan verschijnt meteen de felicitatie.
 - Al gekende tafels worden af en toe tussendoor herhaald, zodat kennis blijft hangen.
 - Via het tafeloverzicht op het startscherm kan je ook een eerder geleerde tafel apart kiezen om te herhalen.
+- **Bovenaan het startscherm staat een niveau-kaart**: welk niveau (1 t.e.m. 10) en welke tafel het kind nu aan het leren is, met een voortgangsbalk van hoeveel sommen van die tafel al gekend zijn.
 - Alle voortgang (sterren, welke tafel actief is, welke tafels al aangeleerd zijn, welke feiten al gekend zijn) wordt lokaal opgeslagen in de browser, dus die blijft bewaard tussen sessies op hetzelfde toestel.
 
 ### Gebruiken

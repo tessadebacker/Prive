@@ -18,14 +18,25 @@
       <button id="btn-settings" class="icon-btn" aria-label="Instellingen">⚙️</button>
     </div>
 
-    <p class="subtitle">Hoi <span id="player-name">kampioen</span>! Welke tafel oefenen we vandaag?</p>
-
-    <div class="stars-banner">
-      <span id="total-stars">⭐ 0</span> sterren verzameld
+    <div class="level-card">
+      <div class="level-card-top">
+        <span class="level-badge">Niveau <span id="level-number">1</span>/10</span>
+        <span id="total-stars">⭐ 0</span>
+      </div>
+      <div class="level-card-table">Tafel van <span id="level-table">1</span></div>
+      <div id="level-status-taught">
+        <div class="progress-bar-outer"><div id="level-progress-inner" class="progress-bar-inner"></div></div>
+        <div class="level-card-sub" id="level-progress-label">0/10 sommen gekend</div>
+      </div>
+      <div id="level-status-pending" class="hidden">
+        <span class="level-badge-pending">📖 Nog niet geleerd</span>
+      </div>
     </div>
 
+    <p class="subtitle">Hoi <span id="player-name">kampioen</span>!</p>
+
     <button id="btn-start-adaptive" class="big-btn primary">
-      ▶️ Verder oefenen<br><small id="current-table-label">Tafel van 1</small>
+      <span id="start-btn-label">▶️ Nieuwe les</span>
     </button>
 
     <h2 class="section-title">Kies zelf een tafel</h2>
@@ -39,6 +50,7 @@
       <div class="progress-bar-outer"><div id="progress-bar-inner" class="progress-bar-inner"></div></div>
       <span id="quiz-streak">🔥 0</span>
     </div>
+    <div class="session-progress" id="session-progress">Oefening 1/20</div>
 
     <div class="quiz-card">
       <div id="mascot" class="mascot">🐸</div>
@@ -70,6 +82,17 @@
       <div class="lesson-dots" id="lesson-dots"></div>
     </div>
     <div id="lesson-content" class="lesson-card"></div>
+  </section>
+
+  <!-- SESSION END: na max. 20 oefeningen als de tafel nog niet helemaal gekend is -->
+  <section id="screen-session-end" class="screen hidden">
+    <div class="celebrate">
+      <div class="celebrate-emoji" id="session-end-emoji">👍</div>
+      <h2 id="session-end-title">Les afgerond!</h2>
+      <p id="session-end-text">Je hebt 20 sommen geoefend.</p>
+      <button id="btn-session-new" class="big-btn primary">Nieuwe les ▶️</button>
+      <button id="btn-session-home" class="big-btn secondary">Terug naar start</button>
+    </div>
   </section>
 
   <!-- TABLE MASTERED CELEBRATION -->

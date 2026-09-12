@@ -10,6 +10,7 @@ const LEARNING_ORDER = [1, 10, 5, 2, 4, 3, 6, 9, 7, 8];
 const TABLES = [...LEARNING_ORDER].sort((a, b) => a - b); // voor het overzicht op het startscherm
 const FACTORS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const MASTERY_STREAK = 3; // aantal keer na elkaar goed voor een feit telt als "gekend"
+const SESSION_LENGTH = 20; // max. aantal oefeningen per les (zoals bij Duolingo)
 const STORAGE_KEY = "tafels-kampioen-v2";
 
 const MASCOTS = { happy: ["🐸", "🐵", "🦊", "🐶", "🐼"], sad: "😊" };
@@ -125,6 +126,7 @@ const screens = {
   home: document.getElementById("screen-home"),
   quiz: document.getElementById("screen-quiz"),
   lesson: document.getElementById("screen-lesson"),
+  sessionEnd: document.getElementById("screen-session-end"),
   celebrate: document.getElementById("screen-celebrate"),
   settings: document.getElementById("screen-settings"),
 };
@@ -139,9 +141,18 @@ function showScreen(name) {
 function renderHome() {
   document.getElementById("player-name").textContent = state.name || "kampioen";
   document.getElementById("total-stars").textContent = `⭐ ${countStars()}`;
-  document.getElementById("current-table-label").textContent = state.taughtTables[state.currentTable]
-    ? `Tafel van ${state.currentTable}`
-    : `Leer de tafel van ${state.currentTable}`;
+
+  const taught = !!state.taughtTables[state.currentTable];
+  const levelNumber = learningIndexOf(state.currentTable) + 1;
+  const masteredCount = FACTORS.filter(f => isFactMastered(state.currentTable, f)).length;
+
+  document.getElementById("level-number").textContent = levelNumber;
+  document.getElementById("level-table").textContent = state.currentTable;
+  document.getElementById("level-progress-inner").style.width = (masteredCount / FACTORS.length * 100) + "%";
+  document.getElementById("level-progress-label").textContent = `${masteredCount}/${FACTORS.length} sommen gekend`;
+  document.getElementById("level-status-taught").classList.toggle("hidden", !taught);
+  document.getElementById("level-status-pending").classList.toggle("hidden", taught);
+  document.getElementById("start-btn-label").textContent = taught ? "▶️ Nieuwe les" : "📖 Leer deze tafel";
 
   const grid = document.getElementById("table-grid");
   grid.innerHTML = "";
@@ -180,12 +191,16 @@ let quiz = {
   correctAnswer: null,
   streak: 0,
   locked: false,
+  sessionCount: 0,    // aantal oefeningen deze les (max. SESSION_LENGTH)
+  sessionCorrect: 0,
 };
 
 function startQuiz(table) {
   quiz.mode = (table === state.currentTable) ? "adaptive" : "focused";
   quiz.targetTable = table;
   quiz.streak = 0;
+  quiz.sessionCount = 0;
+  quiz.sessionCorrect = 0;
   showScreen("quiz");
   nextQuestion();
 }
@@ -207,6 +222,7 @@ function nextQuestion() {
   document.getElementById("mascot").className = "mascot";
   updateProgressBar();
   document.getElementById("quiz-streak").textContent = `🔥 ${quiz.streak}`;
+  document.getElementById("session-progress").textContent = `Oefening ${quiz.sessionCount + 1}/${SESSION_LENGTH}`;
 }
 
 function updateProgressBar() {
@@ -258,19 +274,50 @@ function submitAnswer() {
     mascotEl.className = "mascot sad";
   }
   document.getElementById("quiz-streak").textContent = `🔥 ${quiz.streak}`;
+  quiz.sessionCount += 1;
+  if (correct) quiz.sessionCorrect += 1;
   saveState();
   updateProgressBar();
 
   const nowMastered = quiz.mode === "adaptive" && table === quiz.targetTable && isTableMastered(table);
+  const sessionDone = quiz.sessionCount >= SESSION_LENGTH;
 
   setTimeout(() => {
     if (nowMastered) {
       celebrateTableMastered(table);
+    } else if (sessionDone) {
+      showSessionEnd();
     } else {
       nextQuestion();
     }
   }, correct ? 900 : 1800);
 }
+
+function showSessionEnd() {
+  const total = quiz.sessionCount;
+  const correctCount = quiz.sessionCorrect;
+  const pct = Math.round((correctCount / total) * 100);
+
+  let emoji, title;
+  if (pct >= 90) { emoji = "🌟"; title = "Fantastische les!"; }
+  else if (pct >= 70) { emoji = "👍"; title = "Goed gedaan!"; }
+  else { emoji = "💪"; title = "Les afgerond!"; }
+  const encouragement = pct >= 70 ? "Blijf zo verdergaan!" : "Oefening baart kunst, volgende keer lukt het nog beter!";
+
+  document.getElementById("session-end-emoji").textContent = emoji;
+  document.getElementById("session-end-title").textContent = title;
+  document.getElementById("session-end-text").textContent =
+    `Je hebt ${total} sommen geoefend, waarvan ${correctCount} juist (${pct}%). ${encouragement}`;
+  showScreen("sessionEnd");
+}
+
+document.getElementById("btn-session-new").addEventListener("click", () => {
+  startQuiz(quiz.targetTable);
+});
+document.getElementById("btn-session-home").addEventListener("click", () => {
+  renderHome();
+  showScreen("home");
+});
 
 function randomPraise() {
   const options = ["Juist! 🎉", "Super! ⭐", "Goed zo! 👏", "Knap gedaan!", "Perfect!"];

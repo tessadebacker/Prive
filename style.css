@@ -73,6 +73,46 @@ h1 {
   font-size: 1.1rem;
 }
 
+.level-card {
+  background: linear-gradient(135deg, #ffffff, #fff2f7);
+  border: 2px solid var(--primary);
+  border-radius: 20px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+.level-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-weight: bold;
+}
+.level-badge {
+  background: var(--primary);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+}
+.level-badge-pending {
+  display: inline-block;
+  background: var(--accent-dark);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+}
+.level-card-table {
+  font-size: 1.6rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+.level-card-sub {
+  font-size: 0.9rem;
+  color: #8a7a63;
+  margin-top: 6px;
+}
+
 .big-btn {
   display: block;
   width: 100%;
@@ -90,6 +130,7 @@ h1 {
 .big-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.15); }
 .big-btn.primary { background: linear-gradient(180deg, var(--primary), var(--primary-dark)); }
 .big-btn.danger { background: linear-gradient(180deg, #ff8a8a, #d64545); }
+.big-btn.secondary { background: linear-gradient(180deg, var(--accent), var(--accent-dark)); }
 .big-btn small { font-weight: normal; opacity: 0.9; }
 
 .section-title {
@@ -145,6 +186,14 @@ h1 {
 #quiz-streak {
   font-weight: bold;
   white-space: nowrap;
+}
+
+.session-progress {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #8a7a63;
+  font-weight: bold;
+  margin-top: 4px;
 }
 
 .quiz-card {
