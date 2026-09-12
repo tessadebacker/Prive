@@ -220,14 +220,15 @@ function nextQuestion() {
   document.getElementById("feedback").className = "feedback";
   document.getElementById("mascot").textContent = "🐸";
   document.getElementById("mascot").className = "mascot";
-  updateProgressBar();
+  updateSessionProgressBar();
   document.getElementById("quiz-streak").textContent = `🔥 ${quiz.streak}`;
   document.getElementById("session-progress").textContent = `Oefening ${quiz.sessionCount + 1}/${SESSION_LENGTH}`;
 }
 
-function updateProgressBar() {
-  const masteredCount = FACTORS.filter(f => isFactMastered(quiz.targetTable, f)).length;
-  const pct = Math.round((masteredCount / FACTORS.length) * 100);
+// De balk toont hoe ver we staan in déze les (0..SESSION_LENGTH oefeningen),
+// zodat hij synchroon loopt met de "Oefening X/20"-tekst.
+function updateSessionProgressBar() {
+  const pct = Math.round((quiz.sessionCount / SESSION_LENGTH) * 100);
   document.getElementById("progress-bar-inner").style.width = pct + "%";
 }
 
@@ -277,7 +278,7 @@ function submitAnswer() {
   quiz.sessionCount += 1;
   if (correct) quiz.sessionCorrect += 1;
   saveState();
-  updateProgressBar();
+  updateSessionProgressBar();
 
   const nowMastered = quiz.mode === "adaptive" && table === quiz.targetTable && isTableMastered(table);
   const sessionDone = quiz.sessionCount >= SESSION_LENGTH;
@@ -308,9 +309,29 @@ function showSessionEnd() {
   document.getElementById("session-end-title").textContent = title;
   document.getElementById("session-end-text").textContent =
     `Je hebt ${total} sommen geoefend, waarvan ${correctCount} juist (${pct}%). ${encouragement}`;
+
+  // Alles juist? Dan mag het kind zelf kiezen om al naar de volgende tafel te gaan,
+  // in plaats van te wachten tot elk feit apart 3x na elkaar goed beantwoord is.
+  const suggestionEl = document.getElementById("session-end-suggestion");
+  const skipBtn = document.getElementById("btn-session-skip");
+  const nextTable = nextTableAfter(quiz.targetTable);
+  const canSuggestSkip = pct === 100 && quiz.mode === "adaptive" && nextTable !== null;
+
+  suggestionEl.classList.toggle("hidden", !canSuggestSkip);
+  skipBtn.classList.toggle("hidden", !canSuggestSkip);
+  if (canSuggestSkip) {
+    suggestionEl.textContent = `Wow, alles juist! 🌟 De tafel van ${quiz.targetTable} lijkt wel gemakkelijk voor jou. Zin om al naar de tafel van ${nextTable} te gaan?`;
+    skipBtn.textContent = `Ja, naar tafel van ${nextTable}! ➡️`;
+  }
+
   showScreen("sessionEnd");
 }
 
+document.getElementById("btn-session-skip").addEventListener("click", () => {
+  const table = quiz.targetTable;
+  FACTORS.forEach(f => { state.progress[table][f] = MASTERY_STREAK; }); // telt voortaan als volledig gekend
+  celebrateTableMastered(table);
+});
 document.getElementById("btn-session-new").addEventListener("click", () => {
   startQuiz(quiz.targetTable);
 });
