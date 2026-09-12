@@ -217,6 +217,129 @@ h1 {
 .keypad .key-enter { background: linear-gradient(180deg, var(--green), #4aa657); color: white; }
 .keypad .key-back { background: linear-gradient(180deg, #ffb3b3, var(--red)); color: white; }
 
+.lesson-dots {
+  flex: 1;
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+.lesson-dots .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e5e0d8;
+}
+.lesson-dots .dot.active { background: var(--accent-dark); }
+.lesson-dots .dot.done { background: var(--gold); }
+
+.lesson-card {
+  background: var(--card);
+  border-radius: 24px;
+  padding: 22px;
+  margin-top: 10px;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.08);
+  text-align: center;
+}
+.lesson-card h2 {
+  margin-top: 0;
+  font-size: 1.4rem;
+}
+.lesson-card .lesson-text {
+  font-size: 1.15rem;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+.lesson-card .lesson-example {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: var(--primary-dark);
+  background: #fff2f7;
+  border-radius: 14px;
+  padding: 10px;
+  margin: 10px 0;
+}
+
+.dot-grid {
+  display: grid;
+  gap: 3px;
+  justify-content: center;
+  margin: 14px auto;
+}
+.dot-grid .dot-item {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent-dark);
+}
+.dot-grid .dot-item.new-row { background: var(--primary); }
+
+.fact-list {
+  max-height: 140px;
+  overflow-y: auto;
+  text-align: left;
+  background: #f7f4ee;
+  border-radius: 12px;
+  padding: 10px 16px;
+  margin: 12px 0;
+  font-size: 1.05rem;
+}
+.fact-list div { padding: 2px 0; }
+.fact-list div.latest { font-weight: bold; color: var(--primary-dark); }
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin: 14px 0;
+}
+.chip {
+  background: var(--accent);
+  color: #06414a;
+  font-weight: bold;
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 1.1rem;
+}
+.chip.placeholder { background: #eee; color: #bbb; }
+
+.lesson-nav-btn {
+  border: none;
+  border-radius: 18px;
+  padding: 14px 20px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: white;
+  background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+  cursor: pointer;
+  margin-top: 10px;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.12);
+  font-family: inherit;
+}
+.lesson-nav-btn:active { transform: translateY(2px); box-shadow: none; }
+.lesson-nav-btn:disabled { opacity: 0.4; cursor: default; }
+
+.mini-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+.mini-keypad button {
+  font-size: 1.3rem;
+  font-weight: bold;
+  padding: 12px 0;
+  border: none;
+  border-radius: 12px;
+  background: var(--bg);
+  box-shadow: 0 3px 0 rgba(0,0,0,0.1);
+  cursor: pointer;
+  color: var(--ink);
+}
+.mini-keypad button:active { transform: translateY(2px); box-shadow: none; }
+.mini-keypad .key-enter { background: linear-gradient(180deg, var(--green), #4aa657); color: white; }
+.mini-keypad .key-back { background: linear-gradient(180deg, #ffb3b3, var(--red)); color: white; }
+
 .celebrate {
   text-align: center;
   padding-top: 60px;
