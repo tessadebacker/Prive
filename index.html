@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Tafels Kampioen</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏆</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- HOME SCREEN -->
+  <section id="screen-home" class="screen">
+    <div class="topbar">
+      <h1>🏆 Tafels Kampioen</h1>
+      <button id="btn-settings" class="icon-btn" aria-label="Instellingen">⚙️</button>
+    </div>
+
+    <p class="subtitle">Hoi <span id="player-name">kampioen</span>! Welke tafel oefenen we vandaag?</p>
+
+    <div class="stars-banner">
+      <span id="total-stars">⭐ 0</span> sterren verzameld
+    </div>
+
+    <button id="btn-start-adaptive" class="big-btn primary">
+      ▶️ Verder oefenen<br><small id="current-table-label">Tafel van 1</small>
+    </button>
+
+    <h2 class="section-title">Kies zelf een tafel</h2>
+    <div id="table-grid" class="table-grid"></div>
+  </section>
+
+  <!-- QUIZ SCREEN -->
+  <section id="screen-quiz" class="screen hidden">
+    <div class="topbar">
+      <button id="btn-quit" class="icon-btn" aria-label="Terug">⬅️</button>
+      <div class="progress-bar-outer"><div id="progress-bar-inner" class="progress-bar-inner"></div></div>
+      <span id="quiz-streak">🔥 0</span>
+    </div>
+
+    <div class="quiz-card">
+      <div id="mascot" class="mascot">🐸</div>
+      <div id="question" class="question">7 × 8 = ?</div>
+      <div id="answer-display" class="answer-display">&nbsp;</div>
+      <div id="feedback" class="feedback"></div>
+    </div>
+
+    <div id="keypad" class="keypad">
+      <button data-key="1">1</button>
+      <button data-key="2">2</button>
+      <button data-key="3">3</button>
+      <button data-key="4">4</button>
+      <button data-key="5">5</button>
+      <button data-key="6">6</button>
+      <button data-key="7">7</button>
+      <button data-key="8">8</button>
+      <button data-key="9">9</button>
+      <button data-key="back" class="key-back">⌫</button>
+      <button data-key="0">0</button>
+      <button data-key="enter" class="key-enter">✔️</button>
+    </div>
+  </section>
+
+  <!-- TABLE MASTERED CELEBRATION -->
+  <section id="screen-celebrate" class="screen hidden">
+    <div class="celebrate">
+      <div class="celebrate-emoji">🎉</div>
+      <h2>Knap gedaan!</h2>
+      <p id="celebrate-text">Je kent de tafel van 3 helemaal!</p>
+      <button id="btn-celebrate-continue" class="big-btn primary">Ga verder ▶️</button>
+    </div>
+  </section>
+
+  <!-- SETTINGS SCREEN -->
+  <section id="screen-settings" class="screen hidden">
+    <div class="topbar">
+      <button id="btn-settings-back" class="icon-btn" aria-label="Terug">⬅️</button>
+      <h1>Instellingen</h1>
+    </div>
+    <label class="field">
+      Naam van de kampioen
+      <input id="input-name" type="text" maxlength="20" placeholder="Bv. Lucas">
+    </label>
+    <button id="btn-reset" class="big-btn danger">🗑️ Voortgang wissen</button>
+    <p class="hint">Dit wist alle sterren en start opnieuw bij tafel 1.</p>
+  </section>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
