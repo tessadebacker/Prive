@@ -19,7 +19,13 @@ De app past zich aan het niveau van het kind aan:
 
 ### Gebruiken
 
-Er is geen installatie of build-stap nodig, het is een gewone statische webpagina:
+De app draait live via GitHub Pages op:
+
+**https://tessadebacker.github.io/Prive/**
+
+Dat is een vaste link die op elk toestel werkt (telefoon, tablet, computer) — gewoon openen in de browser. Voortgang wordt lokaal in de browser van dat toestel bewaard (per toestel apart), en blijft betrouwbaar bewaard tussen sessies omdat het om een vaste, stabiele hosting gaat (in tegenstelling tot een tijdelijke preview-link).
+
+Er is geen installatie of build-stap nodig, het is een gewone statische webpagina. Om lokaal te ontwikkelen/testen:
 
 1. Open `index.html` rechtstreeks in een browser, of
 2. start lokaal een simpele webserver in deze map, bv.:
