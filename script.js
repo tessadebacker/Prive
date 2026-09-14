@@ -1,5 +1,73 @@
 // Tafels Kampioen - oefenapp voor de maaltafels
-// Alle voortgang wordt lokaal opgeslagen in de browser (localStorage).
+// Voortgang wordt lokaal opgeslagen (localStorage, instant + werkt offline)
+// EN gesynchroniseerd via Firebase Firestore, zodat ze meegaat tussen toestellen.
+//
+// De Firebase-SDK wordt bewust dynamisch (async) ingeladen in plaats van via
+// een gewone top-level "import": als dat scriptbestand niet kan laden (geen
+// internet, een ad-blocker die Google-scripts blokkeert, ...) mag dat de rest
+// van de app nooit blokkeren. Alles hieronder werkt dus altijd offline; de
+// cloud-sync licht enkel op zodra hij lukt.
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC22Ov8NyHx5uBo2ItjueDdOGJ2N9hXcUA",
+  authDomain: "maaltafelkampioen.firebaseapp.com",
+  projectId: "maaltafelkampioen",
+  storageBucket: "maaltafelkampioen.firebasestorage.app",
+  messagingSenderId: "367824301510",
+  appId: "1:367824301510:web:aa71010390926b4e6616c7",
+};
+
+// Alle toestellen delen precies dit ene document (zie Firestore security rules).
+const SYNC_COLLECTION = "progress";
+const SYNC_DOC_ID = "tafels-kampioen-familie";
+
+let progressDocRef = null;
+let cloudSetDoc = null; // wordt de Firestore setDoc-functie zodra de SDK geladen is
+// "pending" (nog aan het opstarten) -> "active" (werkt) of "failed" (geen internet /
+// SDK niet bereikbaar / verbinding verbroken). De app werkt in alle drie de gevallen
+// gewoon verder met localStorage.
+let cloudSyncState = "pending";
+
+async function initCloudSync() {
+  try {
+    const [{ initializeApp }, { getFirestore, doc, setDoc, onSnapshot }] = await Promise.all([
+      import("https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"),
+      import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js"),
+    ]);
+
+    const firebaseApp = initializeApp(firebaseConfig);
+    const firestoreDb = getFirestore(firebaseApp);
+    progressDocRef = doc(firestoreDb, SYNC_COLLECTION, SYNC_DOC_ID);
+    cloudSetDoc = setDoc;
+
+    onSnapshot(
+      progressDocRef,
+      (snap) => {
+        cloudSyncState = "active";
+        updateSyncStatusUI();
+        if (snap.exists()) {
+          state = mergeWithDefaults(snap.data());
+          saveLocalState();
+          if (!screens.home.classList.contains("hidden")) {
+            renderHome();
+          }
+        } else {
+          // Nog geen data in de cloud (eerste keer) -> start ermee op basis van lokale toestand.
+          cloudSetDoc(progressDocRef, state).catch(() => {});
+        }
+      },
+      (e) => {
+        cloudSyncState = "failed";
+        updateSyncStatusUI();
+        console.warn("Cloud-sync verbroken, de app werkt verder met lokale opslag.", e);
+      }
+    );
+  } catch (e) {
+    cloudSyncState = "failed";
+    console.warn("Cloud-sync kon niet opstarten, de app werkt verder enkel lokaal.", e);
+    updateSyncStatusUI();
+  }
+}
 
 // Volgorde waarin de tafels aangeleerd worden. Dit volgt de klassieke
 // didactische opbouw: eerst de tafels die aansluiten bij dingen die het kind
@@ -46,28 +114,55 @@ function defaultState() {
   };
 }
 
+function mergeWithDefaults(parsed) {
+  const fresh = defaultState();
+  if (!parsed) return fresh;
+  return {
+    ...fresh,
+    ...parsed,
+    progress: { ...fresh.progress, ...(parsed.progress || {}) },
+    taughtTables: { ...fresh.taughtTables, ...(parsed.taughtTables || {}) },
+  };
+}
+
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState();
-    const parsed = JSON.parse(raw);
-    const fresh = defaultState();
-    return {
-      ...fresh,
-      ...parsed,
-      progress: { ...fresh.progress, ...(parsed.progress || {}) },
-      taughtTables: { ...fresh.taughtTables, ...(parsed.taughtTables || {}) },
-    };
+    return mergeWithDefaults(JSON.parse(raw));
   } catch (e) {
     return defaultState();
   }
 }
 
-function saveState() {
+function saveLocalState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
+function saveState() {
+  saveLocalState();
+  if (progressDocRef && cloudSetDoc) {
+    cloudSetDoc(progressDocRef, state).catch((e) => {
+      console.warn("Kon voortgang niet naar de cloud sturen (lokaal wel bewaard).", e);
+    });
+  }
+}
+
 let state = loadState();
+
+function updateSyncStatusUI() {
+  const el = document.getElementById("sync-status");
+  if (!el) return;
+  if (cloudSyncState === "active") {
+    el.textContent = "☁️ Cloud-sync actief — voortgang wordt gedeeld tussen toestellen";
+  } else if (cloudSyncState === "failed") {
+    el.textContent = "📴 Geen cloud-verbinding — voortgang blijft wel lokaal op dit toestel bewaard";
+  } else {
+    el.textContent = "⏳ Cloud-sync wordt opgestart...";
+  }
+}
+
+initCloudSync();
 
 // ---------- Helpers ----------
 
@@ -669,6 +764,7 @@ document.getElementById("btn-celebrate-continue").addEventListener("click", () =
 
 document.getElementById("btn-settings").addEventListener("click", () => {
   document.getElementById("input-name").value = state.name || "";
+  updateSyncStatusUI();
   showScreen("settings");
 });
 document.getElementById("btn-settings-back").addEventListener("click", () => {

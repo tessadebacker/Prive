@@ -15,7 +15,7 @@ De app past zich aan het niveau van het kind aan:
 - Al gekende tafels worden af en toe tussendoor herhaald, zodat kennis blijft hangen.
 - Via het tafeloverzicht op het startscherm kan je ook een eerder geleerde tafel apart kiezen om te herhalen.
 - **Bovenaan het startscherm staat een niveau-kaart**: welk niveau (1 t.e.m. 10) en welke tafel het kind nu aan het leren is, met een voortgangsbalk van hoeveel sommen van die tafel al gekend zijn.
-- Alle voortgang (sterren, welke tafel actief is, welke tafels al aangeleerd zijn, welke feiten al gekend zijn) wordt lokaal opgeslagen in de browser, dus die blijft bewaard tussen sessies op hetzelfde toestel.
+- **Voortgang synct automatisch tussen toestellen** via een gratis Firebase Firestore-database: wat je zoon op zijn tablet oefent, zie je ook terug op je eigen telefoon of laptop, en omgekeerd. Er is geen account of login voor nodig — alle toestellen delen gewoon hetzelfde ene voortgangsdocument. Lokaal (in de browser) wordt alles ook nog steeds bewaard als directe/offline back-up: zonder internet werkt de app gewoon verder op basis van de laatste lokale stand, en zodra er weer verbinding is synct alles automatisch bij. Onderaan het instellingenscherm staat een statusregel die toont of de cloud-sync actief is (☁️) of niet (📴).
 
 ### Gebruiken
 
@@ -23,7 +23,7 @@ De app draait live via GitHub Pages op:
 
 **https://tessadebacker.github.io/Prive/**
 
-Dat is een vaste link die op elk toestel werkt (telefoon, tablet, computer) — gewoon openen in de browser. Voortgang wordt lokaal in de browser van dat toestel bewaard (per toestel apart), en blijft betrouwbaar bewaard tussen sessies omdat het om een vaste, stabiele hosting gaat (in tegenstelling tot een tijdelijke preview-link).
+Dat is een vaste link die op elk toestel werkt (telefoon, tablet, computer) — gewoon openen in de browser.
 
 Er is geen installatie of build-stap nodig, het is een gewone statische webpagina. Om lokaal te ontwikkelen/testen:
 
