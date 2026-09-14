@@ -22,7 +22,8 @@ const SYNC_COLLECTION = "progress";
 const SYNC_DOC_ID = "tafels-kampioen-familie";
 
 let progressDocRef = null;
-let cloudSetDoc = null; // wordt de Firestore setDoc-functie zodra de SDK geladen is
+let cloudSetDoc = null;    // Firestore setDoc: volledige documentvervanging (enkel voor bootstrap/reset)
+let cloudUpdateDoc = null; // Firestore updateDoc: wijzigt gericht enkel de opgegeven velden
 // "pending" (nog aan het opstarten) -> "active" (werkt) of "failed" (geen internet /
 // SDK niet bereikbaar / verbinding verbroken). De app werkt in alle drie de gevallen
 // gewoon verder met localStorage.
@@ -30,7 +31,7 @@ let cloudSyncState = "pending";
 
 async function initCloudSync() {
   try {
-    const [{ initializeApp }, { getFirestore, doc, setDoc, onSnapshot }] = await Promise.all([
+    const [{ initializeApp }, { getFirestore, doc, setDoc, updateDoc, onSnapshot }] = await Promise.all([
       import("https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"),
       import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js"),
     ]);
@@ -39,6 +40,7 @@ async function initCloudSync() {
     const firestoreDb = getFirestore(firebaseApp);
     progressDocRef = doc(firestoreDb, SYNC_COLLECTION, SYNC_DOC_ID);
     cloudSetDoc = setDoc;
+    cloudUpdateDoc = updateDoc;
 
     onSnapshot(
       progressDocRef,
@@ -139,13 +141,38 @@ function saveLocalState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-function saveState() {
+// Bouwt een cloud-patch met dot-genoteerde veldpaden voor alle factoren van
+// één tafel, bv. { "progress.5.1": 3, "progress.5.2": 0, ... }.
+function progressPatchForTable(table) {
+  const patch = {};
+  FACTORS.forEach(f => { patch[`progress.${table}.${f}`] = state.progress[table][f]; });
+  return patch;
+}
+
+// `cloudPatch`: welke velden er dit keer naar de cloud moeten (dot-notatie),
+// of "FULL" om het hele document te vervangen (enkel bij een volledige reset).
+// Bewust GEEN volledige state bij elke save: als elk toestel altijd zijn volledige
+// lokale kopie zou wegschrijven, overschrijft het per ongeluk wijzigingen die een
+// ander toestel ondertussen maakte (bv. een naam die net op de laptop werd
+// ingesteld, weer gewist door een oudere kopie vanaf de gsm).
+function saveState(cloudPatch) {
   saveLocalState();
-  if (progressDocRef && cloudSetDoc) {
+  if (!progressDocRef || !cloudPatch) return;
+
+  if (cloudPatch === "FULL") {
     cloudSetDoc(progressDocRef, state).catch((e) => {
       console.warn("Kon voortgang niet naar de cloud sturen (lokaal wel bewaard).", e);
     });
+    return;
   }
+
+  cloudUpdateDoc(progressDocRef, cloudPatch).catch(() => {
+    // Document bestaat wellicht nog niet (allereerste keer) -> initialiseren
+    // met de volledige lokale toestand.
+    cloudSetDoc(progressDocRef, state).catch((e) => {
+      console.warn("Kon voortgang niet naar de cloud sturen (lokaal wel bewaard).", e);
+    });
+  });
 }
 
 let state = loadState();
@@ -372,7 +399,7 @@ function submitAnswer() {
   document.getElementById("quiz-streak").textContent = `🔥 ${quiz.streak}`;
   quiz.sessionCount += 1;
   if (correct) quiz.sessionCorrect += 1;
-  saveState();
+  saveState({ [`progress.${table}.${factor}`]: state.progress[table][factor] });
   updateSessionProgressBar();
 
   const nowMastered = quiz.mode === "adaptive" && table === quiz.targetTable && isTableMastered(table);
@@ -425,6 +452,7 @@ function showSessionEnd() {
 document.getElementById("btn-session-skip").addEventListener("click", () => {
   const table = quiz.targetTable;
   FACTORS.forEach(f => { state.progress[table][f] = MASTERY_STREAK; }); // telt voortaan als volledig gekend
+  saveState(progressPatchForTable(table));
   celebrateTableMastered(table);
 });
 document.getElementById("btn-session-new").addEventListener("click", () => {
@@ -694,7 +722,7 @@ document.getElementById("screen-lesson").addEventListener("click", (e) => {
     handleSkipCheckKey(btn.dataset.key);
   } else if (action === "lesson-start-quiz") {
     state.taughtTables[lesson.table] = true;
-    saveState();
+    saveState({ [`taughtTables.${lesson.table}`]: true });
     startQuiz(lesson.table);
   }
 });
@@ -733,7 +761,7 @@ function celebrateTableMastered(table) {
   if (next !== null) {
     state.currentTable = next;
   }
-  saveState();
+  saveState(next !== null ? { currentTable: next } : null);
 
   const celebrateText = document.getElementById("celebrate-text");
   const continueBtn = document.getElementById("btn-celebrate-continue");
@@ -769,20 +797,22 @@ document.getElementById("btn-settings").addEventListener("click", () => {
 });
 document.getElementById("btn-settings-back").addEventListener("click", () => {
   state.name = document.getElementById("input-name").value.trim();
-  saveState();
+  saveState({ name: state.name });
   renderHome();
   showScreen("home");
 });
 document.getElementById("input-name").addEventListener("input", (e) => {
+  // Enkel lokaal bewaren terwijl er getypt wordt (anders 1 cloud-schrijfactie per
+  // letter); de definitieve naam wordt gesynct bij het verlaten van dit scherm.
   state.name = e.target.value.trim();
-  saveState();
+  saveLocalState();
 });
 document.getElementById("btn-reset").addEventListener("click", () => {
   if (confirm("Weet je zeker dat je alle voortgang wil wissen?")) {
     const name = state.name;
     state = defaultState();
     state.name = name;
-    saveState();
+    saveState("FULL");
     renderHome();
     showScreen("home");
   }
