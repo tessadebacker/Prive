@@ -25,7 +25,13 @@ De app draait live via GitHub Pages op:
 
 Dat is een vaste link die op elk toestel werkt (telefoon, tablet, computer) — gewoon openen in de browser.
 
-Er is geen installatie of build-stap nodig, het is een gewone statische webpagina. Om lokaal te ontwikkelen/testen:
+**Als app installeren op een gsm** (geen App Store nodig): open de link in de browser, en kies:
+- **iPhone (Safari)**: knop "Delen" (vierkantje met pijltje omhoog) → "Zet op beginscherm".
+- **Android (Chrome)**: menu (⋮) → "App installeren" of "Toevoegen aan startscherm".
+
+Er verschijnt dan een eigen 🏆-icoontje op het beginscherm dat de app in volledig scherm opent, zonder browserbalk — net als een "echte" geïnstalleerde app. Dit gebruikt technisch gezien een web-app-manifest (`manifest.json`), geen aparte App Store-publicatie.
+
+Er is geen installatie of build-stap nodig om de code zelf te ontwikkelen, het is een gewone statische webpagina. Om lokaal te ontwikkelen/testen:
 
 1. Open `index.html` rechtstreeks in een browser, of
 2. start lokaal een simpele webserver in deze map, bv.:
