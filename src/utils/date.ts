@@ -20,6 +20,16 @@ export function addDays(iso: string, delta: number): string {
   return toISODate(d);
 }
 
+export function addMonths(iso: string, delta: number): string {
+  const d = fromISODate(iso);
+  const day = d.getDate();
+  d.setDate(1); // avoid month-length overflow (e.g. Jan 31 -> Mar 3) while shifting months
+  d.setMonth(d.getMonth() + delta);
+  const lastDayOfNewMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(day, lastDayOfNewMonth));
+  return toISODate(d);
+}
+
 // Monday-start week key, e.g. "2026-W37"-ish but we just use the ISO date of that week's Monday.
 export function startOfWeek(iso: string): string {
   const d = fromISODate(iso);

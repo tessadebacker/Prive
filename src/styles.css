@@ -628,6 +628,7 @@ main.screen {
 
 .segmented {
   display: flex;
+  flex-wrap: wrap;
   background: var(--surface-alt);
   border-radius: var(--radius-sm);
   padding: 3px;
@@ -635,7 +636,7 @@ main.screen {
 }
 
 .segmented button {
-  flex: 1;
+  flex: 1 1 calc(50% - 3px);
   border: none;
   background: transparent;
   padding: 8px 6px;

@@ -1,6 +1,6 @@
 import type { Completion, Habit } from '../types';
-import { todayISO } from '../utils/date';
-import { completionDatesFor, currentStreak, weekProgress } from '../utils/habit';
+import { formatDateShort, todayISO } from '../utils/date';
+import { completionDatesFor, currentStreak, monthsStatus, weekProgress } from '../utils/habit';
 import { WeekDots } from './WeekDots';
 
 export function TodayHabitRow({
@@ -17,6 +17,7 @@ export function TodayHabitRow({
   const done = dates.has(today);
   const streak = currentStreak(habit, completions);
   const week = weekProgress(habit, completions, today);
+  const months = monthsStatus(habit, completions, today);
 
   return (
     <div className="habit-row">
@@ -41,8 +42,13 @@ export function TodayHabitRow({
               {week.done}/{week.target} this week
             </span>
           )}
+          {months && (
+            <span className={months.overdue ? 'overdue' : undefined}>
+              {months.lastDone ? `Last: ${formatDateShort(months.lastDone)}` : 'Not done yet'}
+            </span>
+          )}
         </div>
-        <WeekDots dates={dates} />
+        {!months && <WeekDots dates={dates} />}
       </div>
       <span className="points-tag">+{habit.points}</span>
     </div>

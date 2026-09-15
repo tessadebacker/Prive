@@ -23,6 +23,9 @@ export function HabitFormSheet({
   const [days, setDays] = useState<number[]>(
     habit?.frequency.kind === 'specificDays' ? habit.frequency.days : [1, 3, 5]
   );
+  const [everyNMonths, setEveryNMonths] = useState(
+    habit?.frequency.kind === 'everyNMonths' ? habit.frequency.months : 3
+  );
   const [points, setPoints] = useState(habit?.points ?? 10);
 
   const canSave =
@@ -31,6 +34,7 @@ export function HabitFormSheet({
   function buildFrequency(): Frequency {
     if (freqKind === 'daily') return { kind: 'daily' };
     if (freqKind === 'timesPerWeek') return { kind: 'timesPerWeek', count: timesPerWeek };
+    if (freqKind === 'everyNMonths') return { kind: 'everyNMonths', months: everyNMonths };
     return { kind: 'specificDays', days: [...days].sort() };
   }
 
@@ -91,6 +95,13 @@ export function HabitFormSheet({
           >
             Specific days
           </button>
+          <button
+            type="button"
+            className={freqKind === 'everyNMonths' ? 'active' : ''}
+            onClick={() => setFreqKind('everyNMonths')}
+          >
+            Every X months
+          </button>
         </div>
       </div>
 
@@ -103,6 +114,21 @@ export function HabitFormSheet({
             </button>
             <span className="stepper-value">{timesPerWeek}</span>
             <button type="button" onClick={() => setTimesPerWeek((n) => Math.min(7, n + 1))}>
+              +
+            </button>
+          </div>
+        </div>
+      )}
+
+      {freqKind === 'everyNMonths' && (
+        <div className="field">
+          <label>Every how many months</label>
+          <div className="stepper">
+            <button type="button" onClick={() => setEveryNMonths((n) => Math.max(1, n - 1))}>
+              −
+            </button>
+            <span className="stepper-value">{everyNMonths}</span>
+            <button type="button" onClick={() => setEveryNMonths((n) => Math.min(24, n + 1))}>
               +
             </button>
           </div>

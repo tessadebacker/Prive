@@ -1,7 +1,8 @@
 export type Frequency =
   | { kind: 'daily' }
   | { kind: 'timesPerWeek'; count: number }
-  | { kind: 'specificDays'; days: number[] }; // 0 = Sunday .. 6 = Saturday
+  | { kind: 'specificDays'; days: number[] } // 0 = Sunday .. 6 = Saturday
+  | { kind: 'everyNMonths'; months: number };
 
 export interface Habit {
   id: string;

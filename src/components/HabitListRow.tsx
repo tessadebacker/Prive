@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Completion, Habit } from '../types';
-import { completionDatesFor, currentStreak, frequencyLabel, weekProgress } from '../utils/habit';
+import { formatDateShort } from '../utils/date';
+import { completionDatesFor, currentStreak, frequencyLabel, monthsStatus, weekProgress } from '../utils/habit';
 import { WeekDots } from './WeekDots';
 
 export function HabitListRow({
@@ -20,6 +21,7 @@ export function HabitListRow({
   const dates = completionDatesFor(habit.id, completions);
   const streak = currentStreak(habit, completions);
   const week = weekProgress(habit, completions);
+  const months = monthsStatus(habit, completions);
 
   return (
     <div className="card">
@@ -35,8 +37,15 @@ export function HabitListRow({
                 {week.done}/{week.target} this week
               </span>
             )}
+            {months && (
+              <span className={months.overdue ? 'overdue' : undefined}>
+                {months.lastDone
+                  ? `Last: ${formatDateShort(months.lastDone)} · Next: ${formatDateShort(months.nextDue!)}`
+                  : 'Not done yet'}
+              </span>
+            )}
           </div>
-          <WeekDots dates={dates} />
+          {!months && <WeekDots dates={dates} />}
         </div>
         <span className="points-tag">+{habit.points}</span>
       </div>
