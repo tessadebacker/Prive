@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Goal } from '../types';
 import { daysBetween, formatDateShort, isPastDate, todayISO } from '../utils/date';
 import { ProgressBar } from './ProgressBar';
+import { WeekDots } from './WeekDots';
 
 export function GoalCard({
   goal,
@@ -9,6 +10,7 @@ export function GoalCard({
   onClick,
   checkedToday,
   streak,
+  checkInDates,
   onToggleCheckIn,
   onToggleMilestone,
   onAddMilestone,
@@ -22,6 +24,7 @@ export function GoalCard({
   onClick?: () => void;
   checkedToday?: boolean;
   streak?: number;
+  checkInDates?: Set<string>;
   onToggleCheckIn?: () => void;
   onToggleMilestone?: (milestoneId: string) => void;
   onAddMilestone?: (title: string) => void;
@@ -81,6 +84,8 @@ export function GoalCard({
       </div>
 
       {(total > 0 || goal.achieved) && <ProgressBar pct={pct} gold={goal.achieved} />}
+
+      {checkInDates && <WeekDots dates={checkInDates} />}
 
       {!compact && (
         <>

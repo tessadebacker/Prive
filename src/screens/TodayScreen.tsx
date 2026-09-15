@@ -64,17 +64,21 @@ export function TodayScreen({ onNavigate }: { onNavigate: (tab: Tab) => void }) 
           </div>
         ) : (
           <div className="card-list">
-            {activeGoals.map((g) => (
-              <GoalCard
-                key={g.id}
-                goal={g}
-                compact
-                onClick={() => onNavigate('goals')}
-                checkedToday={goalCheckInDatesFor(g.id, state.goalCheckIns).has(today)}
-                streak={goalCurrentStreak(g, state.goalCheckIns)}
-                onToggleCheckIn={() => toggleGoalCheckIn(g.id, today)}
-              />
-            ))}
+            {activeGoals.map((g) => {
+              const checkInDates = goalCheckInDatesFor(g.id, state.goalCheckIns);
+              return (
+                <GoalCard
+                  key={g.id}
+                  goal={g}
+                  compact
+                  onClick={() => onNavigate('goals')}
+                  checkedToday={checkInDates.has(today)}
+                  streak={goalCurrentStreak(g, state.goalCheckIns)}
+                  checkInDates={checkInDates}
+                  onToggleCheckIn={() => toggleGoalCheckIn(g.id, today)}
+                />
+              );
+            })}
           </div>
         )}
       </section>

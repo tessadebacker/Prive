@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Completion, Habit } from '../types';
-import { addDays, todayISO } from '../utils/date';
 import { completionDatesFor, currentStreak, frequencyLabel, weekProgress } from '../utils/habit';
+import { WeekDots } from './WeekDots';
 
 export function HabitListRow({
   habit,
@@ -20,8 +20,6 @@ export function HabitListRow({
   const dates = completionDatesFor(habit.id, completions);
   const streak = currentStreak(habit, completions);
   const week = weekProgress(habit, completions);
-  const today = todayISO();
-  const last7 = Array.from({ length: 7 }, (_, i) => addDays(today, i - 6));
 
   return (
     <div className="card">
@@ -38,11 +36,7 @@ export function HabitListRow({
               </span>
             )}
           </div>
-          <div className="week-dots">
-            {last7.map((d) => (
-              <span key={d} className={`week-dot${dates.has(d) ? ' filled' : ''}`} />
-            ))}
-          </div>
+          <WeekDots dates={dates} />
         </div>
         <span className="points-tag">+{habit.points}</span>
       </div>

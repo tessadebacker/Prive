@@ -61,12 +61,14 @@ export function GoalsScreen() {
 
   function renderCard(g: Goal) {
     const canCheckIn = !g.achieved && !g.archived;
+    const checkInDates = goalCheckInDatesFor(g.id, state.goalCheckIns);
     return (
       <GoalCard
         key={g.id}
         goal={g}
-        checkedToday={canCheckIn ? goalCheckInDatesFor(g.id, state.goalCheckIns).has(today) : undefined}
+        checkedToday={canCheckIn ? checkInDates.has(today) : undefined}
         streak={canCheckIn ? goalCurrentStreak(g, state.goalCheckIns) : undefined}
+        checkInDates={checkInDates}
         onToggleCheckIn={canCheckIn ? () => toggleGoalCheckIn(g.id, today) : undefined}
         onToggleMilestone={(mid) => toggleMilestone(g.id, mid)}
         onAddMilestone={(title) => addMilestone(g.id, title)}

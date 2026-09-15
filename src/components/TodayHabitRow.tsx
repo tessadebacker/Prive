@@ -1,6 +1,7 @@
 import type { Completion, Habit } from '../types';
 import { todayISO } from '../utils/date';
 import { completionDatesFor, currentStreak, weekProgress } from '../utils/habit';
+import { WeekDots } from './WeekDots';
 
 export function TodayHabitRow({
   habit,
@@ -41,6 +42,7 @@ export function TodayHabitRow({
             </span>
           )}
         </div>
+        <WeekDots dates={dates} />
       </div>
       <span className="points-tag">+{habit.points}</span>
     </div>
