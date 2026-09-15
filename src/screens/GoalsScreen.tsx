@@ -3,6 +3,8 @@ import { useStore } from '../store';
 import { GoalCard } from '../components/GoalCard';
 import { GoalFormSheet } from '../components/GoalFormSheet';
 import type { Goal } from '../types';
+import { todayISO } from '../utils/date';
+import { goalCheckInDatesFor, goalCurrentStreak } from '../utils/goal';
 
 export function GoalsScreen() {
   const {
@@ -14,7 +16,9 @@ export function GoalsScreen() {
     toggleMilestone,
     addMilestone,
     setAchieved,
+    toggleGoalCheckIn,
   } = useStore();
+  const today = todayISO();
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Goal | null>(null);
   const [showArchived, setShowArchived] = useState(false);
@@ -39,6 +43,7 @@ export function GoalsScreen() {
     description: string;
     targetDate: string | null;
     points: number;
+    dailyPoints: number;
   }) {
     if (editing) {
       updateGoal(editing.id, input);
@@ -55,10 +60,14 @@ export function GoalsScreen() {
   }
 
   function renderCard(g: Goal) {
+    const canCheckIn = !g.achieved && !g.archived;
     return (
       <GoalCard
         key={g.id}
         goal={g}
+        checkedToday={canCheckIn ? goalCheckInDatesFor(g.id, state.goalCheckIns).has(today) : undefined}
+        streak={canCheckIn ? goalCurrentStreak(g, state.goalCheckIns) : undefined}
+        onToggleCheckIn={canCheckIn ? () => toggleGoalCheckIn(g.id, today) : undefined}
         onToggleMilestone={(mid) => toggleMilestone(g.id, mid)}
         onAddMilestone={(title) => addMilestone(g.id, title)}
         onSetAchieved={(v) => setAchieved(g.id, v)}

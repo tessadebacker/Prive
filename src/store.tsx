@@ -12,6 +12,7 @@ const initialState: AppState = {
   habits: [],
   goals: [],
   completions: [],
+  goalCheckIns: [],
   rewards: [],
 };
 
@@ -24,6 +25,7 @@ function loadState(): AppState {
       habits: parsed.habits ?? [],
       goals: parsed.goals ?? [],
       completions: parsed.completions ?? [],
+      goalCheckIns: parsed.goalCheckIns ?? [],
       rewards: parsed.rewards ?? [],
     };
   } catch {
@@ -44,6 +46,7 @@ type Action =
   | { type: 'TOGGLE_MILESTONE'; goalId: string; milestoneId: string }
   | { type: 'ADD_MILESTONE'; goalId: string; title: string }
   | { type: 'SET_ACHIEVED'; goalId: string; achieved: boolean }
+  | { type: 'TOGGLE_GOAL_CHECKIN'; goalId: string; date: string }
   | { type: 'ADD_REWARD'; reward: Reward }
   | { type: 'UPDATE_REWARD'; id: string; patch: Partial<Reward> }
   | { type: 'DELETE_REWARD'; id: string }
@@ -137,6 +140,26 @@ function reducer(state: AppState, action: Action): AppState {
             : g
         ),
       };
+    case 'TOGGLE_GOAL_CHECKIN': {
+      const exists = state.goalCheckIns.some(
+        (c) => c.goalId === action.goalId && c.date === action.date
+      );
+      if (exists) {
+        return {
+          ...state,
+          goalCheckIns: state.goalCheckIns.filter(
+            (c) => !(c.goalId === action.goalId && c.date === action.date)
+          ),
+        };
+      }
+      return {
+        ...state,
+        goalCheckIns: [
+          ...state.goalCheckIns,
+          { id: uid(), goalId: action.goalId, date: action.date },
+        ],
+      };
+    }
     case 'ADD_REWARD':
       return { ...state, rewards: [...state.rewards, action.reward] };
     case 'UPDATE_REWARD':
@@ -180,6 +203,7 @@ interface StoreContextValue {
     description: string;
     targetDate: string | null;
     points: number;
+    dailyPoints: number;
   }) => void;
   updateGoal: (id: string, patch: Partial<Goal>) => void;
   archiveGoal: (id: string, archived: boolean) => void;
@@ -187,6 +211,7 @@ interface StoreContextValue {
   toggleMilestone: (goalId: string, milestoneId: string) => void;
   addMilestone: (goalId: string, title: string) => void;
   setAchieved: (goalId: string, achieved: boolean) => void;
+  toggleGoalCheckIn: (goalId: string, date: string) => void;
   addReward: (input: { title: string; emoji: string; cost: number }) => void;
   updateReward: (id: string, patch: Partial<Reward>) => void;
   deleteReward: (id: string) => void;
@@ -235,6 +260,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             description: input.description,
             targetDate: input.targetDate,
             points: input.points,
+            dailyPoints: input.dailyPoints,
             milestones: [],
             achieved: false,
             achievedAt: null,
@@ -248,6 +274,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       toggleMilestone: (goalId, milestoneId) => dispatch({ type: 'TOGGLE_MILESTONE', goalId, milestoneId }),
       addMilestone: (goalId, title) => dispatch({ type: 'ADD_MILESTONE', goalId, title }),
       setAchieved: (goalId, achieved) => dispatch({ type: 'SET_ACHIEVED', goalId, achieved }),
+      toggleGoalCheckIn: (goalId, date) => dispatch({ type: 'TOGGLE_GOAL_CHECKIN', goalId, date }),
       addReward: (input) =>
         dispatch({
           type: 'ADD_REWARD',

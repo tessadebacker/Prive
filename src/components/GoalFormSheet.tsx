@@ -15,6 +15,7 @@ export function GoalFormSheet({
     description: string;
     targetDate: string | null;
     points: number;
+    dailyPoints: number;
   }) => void;
   onClose: () => void;
 }) {
@@ -23,6 +24,7 @@ export function GoalFormSheet({
   const [description, setDescription] = useState(goal?.description ?? '');
   const [targetDate, setTargetDate] = useState(goal?.targetDate ?? '');
   const [points, setPoints] = useState(goal?.points ?? 100);
+  const [dailyPoints, setDailyPoints] = useState(goal?.dailyPoints ?? 5);
 
   const canSave = title.trim().length > 0;
 
@@ -70,6 +72,19 @@ export function GoalFormSheet({
       </div>
 
       <div className="field">
+        <label>Points for working on it each day</label>
+        <div className="stepper">
+          <button type="button" onClick={() => setDailyPoints((n) => Math.max(0, n - 5))}>
+            −
+          </button>
+          <span className="stepper-value">{dailyPoints}</span>
+          <button type="button" onClick={() => setDailyPoints((n) => Math.min(100, n + 5))}>
+            +
+          </button>
+        </div>
+      </div>
+
+      <div className="field">
         <label>Points on achievement</label>
         <div className="stepper">
           <button type="button" onClick={() => setPoints((n) => Math.max(10, n - 25))}>
@@ -96,6 +111,7 @@ export function GoalFormSheet({
               description: description.trim(),
               targetDate: targetDate || null,
               points,
+              dailyPoints,
             })
           }
         >

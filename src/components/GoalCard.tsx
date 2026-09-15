@@ -7,6 +7,9 @@ export function GoalCard({
   goal,
   compact = false,
   onClick,
+  checkedToday,
+  streak,
+  onToggleCheckIn,
   onToggleMilestone,
   onAddMilestone,
   onSetAchieved,
@@ -17,6 +20,9 @@ export function GoalCard({
   goal: Goal;
   compact?: boolean;
   onClick?: () => void;
+  checkedToday?: boolean;
+  streak?: number;
+  onToggleCheckIn?: () => void;
   onToggleMilestone?: (milestoneId: string) => void;
   onAddMilestone?: (title: string) => void;
   onSetAchieved?: (achieved: boolean) => void;
@@ -34,6 +40,18 @@ export function GoalCard({
   return (
     <div className="card goal-card" onClick={onClick} style={onClick ? { cursor: 'pointer' } : undefined}>
       <div className="goal-top">
+        {onToggleCheckIn && (
+          <button
+            className={`check-circle${checkedToday ? ' done' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleCheckIn();
+            }}
+            aria-label={checkedToday ? 'Unmark worked on today' : 'Mark worked on today'}
+          >
+            ✓
+          </button>
+        )}
         <span className="habit-emoji">{goal.emoji}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="goal-title-row">
@@ -46,6 +64,10 @@ export function GoalCard({
       </div>
 
       <div className="goal-meta-row">
+        {!!streak && streak > 0 && <span className="streak-badge">🔥 {streak}</span>}
+        {onToggleCheckIn && !!goal.dailyPoints && (
+          <span>+{goal.dailyPoints}/day worked on</span>
+        )}
         {goal.targetDate && !goal.achieved && (
           <span className={overdue ? 'overdue' : undefined}>
             {overdue ? `Overdue since ${formatDateShort(goal.targetDate)}` : `Target: ${formatDateShort(goal.targetDate)} (${daysLeft}d)`}

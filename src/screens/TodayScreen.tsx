@@ -1,12 +1,13 @@
 import { useStore } from '../store';
 import { formatDateLong, todayISO } from '../utils/date';
 import { isScheduledOn } from '../utils/habit';
+import { goalCheckInDatesFor, goalCurrentStreak } from '../utils/goal';
 import { TodayHabitRow } from '../components/TodayHabitRow';
 import { GoalCard } from '../components/GoalCard';
 import type { Tab } from '../components/BottomNav';
 
 export function TodayScreen({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
-  const { state, toggleCompletion } = useStore();
+  const { state, toggleCompletion, toggleGoalCheckIn } = useStore();
   const today = todayISO();
 
   const dueHabits = state.habits
@@ -64,7 +65,15 @@ export function TodayScreen({ onNavigate }: { onNavigate: (tab: Tab) => void }) 
         ) : (
           <div className="card-list">
             {activeGoals.map((g) => (
-              <GoalCard key={g.id} goal={g} compact onClick={() => onNavigate('goals')} />
+              <GoalCard
+                key={g.id}
+                goal={g}
+                compact
+                onClick={() => onNavigate('goals')}
+                checkedToday={goalCheckInDatesFor(g.id, state.goalCheckIns).has(today)}
+                streak={goalCurrentStreak(g, state.goalCheckIns)}
+                onToggleCheckIn={() => toggleGoalCheckIn(g.id, today)}
+              />
             ))}
           </div>
         )}

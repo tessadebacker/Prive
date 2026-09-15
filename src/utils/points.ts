@@ -7,10 +7,14 @@ export function totalPointsEarned(state: AppState): number {
     const habit = state.habits.find((h) => h.id === c.habitId);
     return sum + (habit ? habit.points : 0);
   }, 0);
-  const goalPoints = state.goals
+  const goalAchievedPoints = state.goals
     .filter((g) => g.achieved)
     .reduce((sum, g) => sum + g.points, 0);
-  return habitPoints + goalPoints;
+  const goalDailyPoints = state.goalCheckIns.reduce((sum, c) => {
+    const goal = state.goals.find((g) => g.id === c.goalId);
+    return sum + (goal ? goal.dailyPoints ?? 0 : 0);
+  }, 0);
+  return habitPoints + goalAchievedPoints + goalDailyPoints;
 }
 
 export function pointsSpent(state: AppState): number {

@@ -28,6 +28,7 @@ export interface Goal {
   description: string;
   targetDate: string | null;
   points: number;
+  dailyPoints: number;
   milestones: Milestone[];
   achieved: boolean;
   achievedAt: string | null;
@@ -38,6 +39,12 @@ export interface Goal {
 export interface Completion {
   id: string;
   habitId: string;
+  date: string; // YYYY-MM-DD, local
+}
+
+export interface GoalCheckIn {
+  id: string;
+  goalId: string;
   date: string; // YYYY-MM-DD, local
 }
 
@@ -55,6 +62,7 @@ export interface AppState {
   habits: Habit[];
   goals: Goal[];
   completions: Completion[];
+  goalCheckIns: GoalCheckIn[];
   rewards: Reward[];
 }
 
