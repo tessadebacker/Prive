@@ -4,6 +4,7 @@ import { isScheduledOn } from '../utils/habit';
 import { goalCheckInDatesFor, goalCurrentStreak } from '../utils/goal';
 import { TodayHabitRow } from '../components/TodayHabitRow';
 import { GoalCard } from '../components/GoalCard';
+import { DailyReminder } from '../components/DailyReminder';
 import type { Tab } from '../components/BottomNav';
 
 export function TodayScreen({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
@@ -22,6 +23,8 @@ export function TodayScreen({ onNavigate }: { onNavigate: (tab: Tab) => void }) 
         <h1 className="screen-title">Today</h1>
         <p className="screen-subtitle">{formatDateLong(today)}</p>
       </div>
+
+      <DailyReminder />
 
       <section>
         <div className="section-heading">

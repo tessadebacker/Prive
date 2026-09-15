@@ -811,6 +811,35 @@ main.screen {
   font-weight: 700;
 }
 
+.reminder-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-color: var(--gold);
+  background: linear-gradient(0deg, var(--surface), var(--surface)), linear-gradient(90deg, #f0c66422, transparent);
+}
+
+.reminder-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.reminder-emoji {
+  font-size: 22px;
+}
+
+.reminder-title {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.reminder-sub {
+  font-size: 12.5px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
 .inline-add-row {
   display: flex;
   gap: 8px;
