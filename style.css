@@ -429,3 +429,148 @@ h1 {
   color: #888;
   font-size: 0.9rem;
 }
+
+/* ---------- Punten & rewards ---------- */
+
+.points-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: linear-gradient(135deg, #fff2f7, #fff6e0);
+  border: 2px solid var(--gold);
+  border-radius: 16px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-weight: bold;
+  font-size: 1.05rem;
+  color: #5c4300;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+.points-banner:active { transform: translateY(2px); }
+.points-banner-cta {
+  color: var(--primary-dark);
+  font-size: 0.95rem;
+}
+.points-banner-static {
+  cursor: default;
+  justify-content: center;
+}
+.points-banner-static:active { transform: none; }
+
+.test-available-badge {
+  background: #fff6e0;
+  border: 2px dashed var(--gold);
+  border-radius: 14px;
+  padding: 10px;
+  text-align: center;
+  font-weight: bold;
+  color: #5c4300;
+  margin: -8px 0 20px;
+}
+
+.rewards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.reward-card {
+  background: var(--card);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.reward-name {
+  font-weight: bold;
+  font-size: 1.05rem;
+}
+.reward-cost {
+  color: #8a7a63;
+  font-size: 0.9rem;
+  margin-top: 2px;
+}
+.reward-redeem-btn {
+  border: none;
+  border-radius: 14px;
+  padding: 10px 16px;
+  font-weight: bold;
+  font-size: 1rem;
+  color: white;
+  background: linear-gradient(180deg, var(--green), #4aa657);
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.reward-redeem-btn:active { transform: translateY(2px); }
+.reward-redeem-btn:disabled {
+  background: #ddd;
+  color: #999;
+  cursor: default;
+}
+
+.rewards-manage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.reward-manage-row {
+  display: grid;
+  grid-template-columns: 1fr 80px 40px;
+  gap: 8px;
+  align-items: center;
+}
+.reward-manage-row input {
+  font-size: 1rem;
+  padding: 10px;
+  border-radius: 10px;
+  border: 2px solid #ddd;
+  font-family: inherit;
+  width: 100%;
+}
+.reward-delete-btn {
+  border: none;
+  background: #ffe1e1;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  padding: 8px;
+  cursor: pointer;
+}
+.reward-add-form {
+  display: grid;
+  grid-template-columns: 1fr 80px;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.reward-add-form input {
+  font-size: 1rem;
+  padding: 10px;
+  border-radius: 10px;
+  border: 2px solid #ddd;
+  font-family: inherit;
+  width: 100%;
+}
+.reward-add-form button {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+
+/* ---------- Theorie-hint bij een fout antwoord ---------- */
+
+.theory-hint {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.95rem;
+  font-weight: normal;
+  line-height: 1.4;
+  color: #5c4300;
+  background: #fff6e0;
+  border-radius: 12px;
+  padding: 10px 12px;
+}

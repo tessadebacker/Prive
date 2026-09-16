@@ -81,6 +81,8 @@ const TABLES = [...LEARNING_ORDER].sort((a, b) => a - b); // voor het overzicht 
 const FACTORS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const MASTERY_STREAK = 3; // aantal keer na elkaar goed voor een feit telt als "gekend"
 const SESSION_LENGTH = 20; // max. aantal oefeningen per les (zoals bij Duolingo)
+const TEST_LENGTH = 10; // de toets heeft exact 1 vraag per factor (1 t.e.m. 10)
+const FAST_AVG_MS_PER_QUESTION = 6000; // gemiddeld max. 6 sec/vraag telt als "snel"
 const STORAGE_KEY = "tafels-kampioen-v2";
 
 const MASCOTS = { happy: ["🐸", "🐵", "🦊", "🐶", "🐼"], sad: "😊" };
@@ -102,6 +104,34 @@ const TRICKS = {
   2: "Trucje: de tafel van 2 is gewoon verdubbelen! 2 × een getal is dat getal plus zichzelf.",
 };
 
+// Geeft bij een fout antwoord een korte theorie-herinnering voor precies dat
+// rekenfeit, gebaseerd op dezelfde trucjes/verbanden als de les. Wordt gebruikt
+// bij een foutje tijdens het oefenen én tijdens de toets.
+function theoryHintFor(table, factor) {
+  const correct = table * factor;
+  if (table === 1) {
+    return `1 × ${factor} = ${factor}, want keer 1 verandert niks!`;
+  }
+  const rel = RELATIONS[table];
+  if (rel) {
+    if (rel.type === "double") {
+      return `${table} × ${factor} is het dubbele van ${rel.of} × ${factor}: ${rel.of} × ${factor} = ${rel.of * factor}, dus ${table} × ${factor} = ${rel.of * factor} + ${rel.of * factor} = ${correct}.`;
+    }
+    if (rel.type === "minusOne") {
+      return `Trucje: ${table} × ${factor} = (${rel.of} × ${factor}) − ${factor} = ${rel.of * factor} − ${factor} = ${correct}.`;
+    }
+    if (rel.type === "sum") {
+      const [a, b] = rel.of;
+      return `${table} × ${factor} = (${a} × ${factor}) + (${b} × ${factor}) = ${a * factor} + ${b * factor} = ${correct}.`;
+    }
+  }
+  if (TRICKS[table]) {
+    return `${TRICKS[table]} Dus ${table} × ${factor} = ${correct}.`;
+  }
+  const groups = Array.from({ length: factor }, () => table).join(" + ");
+  return `${table} × ${factor} betekent ${factor} groepjes van ${table}: ${groups} = ${correct}.`;
+}
+
 function defaultState() {
   const progress = {};
   TABLES.forEach(t => {
@@ -113,6 +143,15 @@ function defaultState() {
     currentTable: LEARNING_ORDER[0], // tafel waar de speler nu op oefent
     progress,          // progress[tafel][factor] = streak (0..MASTERY_STREAK)
     taughtTables: {},  // tafel -> true zodra de uitleg (les) is afgerond
+    readyForTest: {},  // tafel -> true zodra de toets afgelegd mag worden
+    testBlocked: {},   // tafel -> true na een mislukte toets, tot een volledige les afgewerkt is
+    points: 0,
+    pointsPerLesson: 10,
+    rewards: [
+      { id: "r1", name: "15 minuten extra schermtijd", cost: 50 },
+      { id: "r2", name: "Kiest het toetje", cost: 30 },
+      { id: "r3", name: "Filmavond kiezen", cost: 100 },
+    ],
   };
 }
 
@@ -124,6 +163,8 @@ function mergeWithDefaults(parsed) {
     ...parsed,
     progress: { ...fresh.progress, ...(parsed.progress || {}) },
     taughtTables: { ...fresh.taughtTables, ...(parsed.taughtTables || {}) },
+    readyForTest: { ...fresh.readyForTest, ...(parsed.readyForTest || {}) },
+    testBlocked: { ...fresh.testBlocked, ...(parsed.testBlocked || {}) },
   };
 }
 
@@ -147,6 +188,23 @@ function progressPatchForTable(table) {
   const patch = {};
   FACTORS.forEach(f => { patch[`progress.${table}.${f}`] = state.progress[table][f]; });
   return patch;
+}
+
+// Kent de ingestelde punten toe voor een afgewerkte oefenles (niet voor een toets).
+function awardLessonPoints() {
+  const amount = state.pointsPerLesson || 0;
+  if (amount <= 0) return;
+  state.points += amount;
+  saveState({ points: state.points });
+}
+
+// Een volledig afgewerkte oefenreeks (tot de sessiecap) telt als "een volledige
+// les" en ontgrendelt een eerder mislukte toets weer.
+function unlockTestBlock(table) {
+  if (state.testBlocked[table]) {
+    state.testBlocked[table] = false;
+    saveState({ [`testBlocked.${table}`]: false });
+  }
 }
 
 // `cloudPatch`: welke velden er dit keer naar de cloud moeten (dot-notatie),
@@ -251,6 +309,9 @@ const screens = {
   sessionEnd: document.getElementById("screen-session-end"),
   celebrate: document.getElementById("screen-celebrate"),
   settings: document.getElementById("screen-settings"),
+  test: document.getElementById("screen-test"),
+  testResult: document.getElementById("screen-test-result"),
+  rewards: document.getElementById("screen-rewards"),
 };
 
 function showScreen(name) {
@@ -263,8 +324,10 @@ function showScreen(name) {
 function renderHome() {
   document.getElementById("player-name").textContent = state.name || "kampioen";
   document.getElementById("total-stars").textContent = `⭐ ${countStars()}`;
+  document.getElementById("home-points-balance").textContent = state.points;
 
   const taught = !!state.taughtTables[state.currentTable];
+  const readyForTest = !!state.readyForTest[state.currentTable] && !state.testBlocked[state.currentTable];
   const levelNumber = learningIndexOf(state.currentTable) + 1;
   const masteredCount = FACTORS.filter(f => isFactMastered(state.currentTable, f)).length;
 
@@ -274,7 +337,15 @@ function renderHome() {
   document.getElementById("level-progress-label").textContent = `${masteredCount}/${FACTORS.length} sommen gekend`;
   document.getElementById("level-status-taught").classList.toggle("hidden", !taught);
   document.getElementById("level-status-pending").classList.toggle("hidden", taught);
-  document.getElementById("start-btn-label").textContent = taught ? "▶️ Nieuwe les" : "📖 Leer deze tafel";
+  document.getElementById("test-available-badge").classList.toggle("hidden", !readyForTest);
+
+  if (!taught) {
+    document.getElementById("start-btn-label").textContent = "📖 Leer deze tafel";
+  } else if (readyForTest) {
+    document.getElementById("start-btn-label").textContent = "📝 Doe de toets!";
+  } else {
+    document.getElementById("start-btn-label").textContent = "▶️ Nieuwe les";
+  }
 
   const grid = document.getElementById("table-grid");
   grid.innerHTML = "";
@@ -293,6 +364,8 @@ function renderHome() {
 function handleTableTileClick(table) {
   if (table === state.currentTable && !state.taughtTables[table]) {
     startLesson(table);
+  } else if (table === state.currentTable && state.readyForTest[table] && !state.testBlocked[table]) {
+    startTest(table);
   } else {
     startQuiz(table);
   }
@@ -300,6 +373,15 @@ function handleTableTileClick(table) {
 
 document.getElementById("btn-start-adaptive").addEventListener("click", () => {
   handleTableTileClick(state.currentTable);
+});
+
+document.getElementById("btn-open-rewards").addEventListener("click", () => {
+  renderRewardsScreen();
+  showScreen("rewards");
+});
+document.getElementById("btn-rewards-back").addEventListener("click", () => {
+  renderHome();
+  showScreen("home");
 });
 
 // ---------- Quiz ----------
@@ -315,6 +397,10 @@ let quiz = {
   locked: false,
   sessionCount: 0,    // aantal oefeningen deze les (max. SESSION_LENGTH)
   sessionCorrect: 0,
+  sessionStartTime: 0,
+  // Toets-specifieke velden (mode === "test"):
+  testIndex: 0,
+  testCorrectCount: 0,
 };
 
 function startQuiz(table) {
@@ -323,6 +409,7 @@ function startQuiz(table) {
   quiz.streak = 0;
   quiz.sessionCount = 0;
   quiz.sessionCorrect = 0;
+  quiz.sessionStartTime = Date.now();
   showScreen("quiz");
   nextQuestion();
 }
@@ -391,7 +478,7 @@ function submitAnswer() {
   } else {
     state.progress[table][factor] = 0; // opnieuw oefenen bij een foutje
     quiz.streak = 0;
-    feedbackEl.textContent = `Bijna! Het juiste antwoord is ${quiz.correctAnswer}.`;
+    feedbackEl.innerHTML = `Bijna! Het juiste antwoord is ${quiz.correctAnswer}.<span class="theory-hint">${theoryHintFor(table, factor)}</span>`;
     feedbackEl.className = "feedback wrong";
     mascotEl.textContent = "😊";
     mascotEl.className = "mascot sad";
@@ -402,18 +489,29 @@ function submitAnswer() {
   saveState({ [`progress.${table}.${factor}`]: state.progress[table][factor] });
   updateSessionProgressBar();
 
-  const nowMastered = quiz.mode === "adaptive" && table === quiz.targetTable && isTableMastered(table);
+  // Als de toets net mislukt is, mag het bereiken van mastery halverwege een les
+  // de blokkade niet meteen omzeilen: dan moet écht een volledige les (tot de
+  // sessiecap) afgewerkt worden voor de toets weer vrijkomt.
+  const nowMastered = quiz.mode === "adaptive" && table === quiz.targetTable
+    && isTableMastered(table) && !state.testBlocked[table];
   const sessionDone = quiz.sessionCount >= SESSION_LENGTH;
 
   setTimeout(() => {
     if (nowMastered) {
-      celebrateTableMastered(table);
+      awardLessonPoints();
+      unlockTestBlock(table);
+      showReadyForTest(table);
     } else if (sessionDone) {
+      // Let op: `table` is de tafel van de laatste vráág (kan een herhaling van
+      // een andere tafel zijn); een eventuele toets-blokkade ontgrendelen doe je
+      // voor de tafel waar déze les/sessie voor bedoeld was.
+      awardLessonPoints();
+      unlockTestBlock(quiz.targetTable);
       showSessionEnd();
     } else {
       nextQuestion();
     }
-  }, correct ? 900 : 1800);
+  }, correct ? 900 : 4000);
 }
 
 function showSessionEnd() {
@@ -432,28 +530,28 @@ function showSessionEnd() {
   document.getElementById("session-end-text").textContent =
     `Je hebt ${total} sommen geoefend, waarvan ${correctCount} juist (${pct}%). ${encouragement}`;
 
-  // Alles juist? Dan mag het kind zelf kiezen om al naar de volgende tafel te gaan,
-  // in plaats van te wachten tot elk feit apart 3x na elkaar goed beantwoord is.
+  // Alles juist én snel beantwoord? Dan mag het kind de toets proberen, in
+  // plaats van te wachten tot elk feit apart 3x na elkaar goed beantwoord is.
+  // Duurde het lang (ook al was alles juist), dan komt dit aanbod bewust niet:
+  // dat wijst eerder op tellen/twijfelen dan op echte automatisering.
   const suggestionEl = document.getElementById("session-end-suggestion");
-  const skipBtn = document.getElementById("btn-session-skip");
-  const nextTable = nextTableAfter(quiz.targetTable);
-  const canSuggestSkip = pct === 100 && quiz.mode === "adaptive" && nextTable !== null;
+  const testBtn = document.getElementById("btn-session-test");
+  const elapsedMs = Date.now() - (quiz.sessionStartTime || Date.now());
+  const isFast = (elapsedMs / total) <= FAST_AVG_MS_PER_QUESTION;
+  const canOfferTest = pct === 100 && isFast && quiz.mode === "adaptive" && !state.testBlocked[quiz.targetTable];
 
-  suggestionEl.classList.toggle("hidden", !canSuggestSkip);
-  skipBtn.classList.toggle("hidden", !canSuggestSkip);
-  if (canSuggestSkip) {
-    suggestionEl.textContent = `Wow, alles juist! 🌟 De tafel van ${quiz.targetTable} lijkt wel gemakkelijk voor jou. Zin om al naar de tafel van ${nextTable} te gaan?`;
-    skipBtn.textContent = `Ja, naar tafel van ${nextTable}! ➡️`;
+  suggestionEl.classList.toggle("hidden", !canOfferTest);
+  testBtn.classList.toggle("hidden", !canOfferTest);
+  if (canOfferTest) {
+    suggestionEl.textContent = `Wow, alles juist en ook nog snel! 🌟 Wil je de toets van tafel ${quiz.targetTable} proberen?`;
+    testBtn.textContent = "Ja, doe de toets! 📝";
   }
 
   showScreen("sessionEnd");
 }
 
-document.getElementById("btn-session-skip").addEventListener("click", () => {
-  const table = quiz.targetTable;
-  FACTORS.forEach(f => { state.progress[table][f] = MASTERY_STREAK; }); // telt voortaan als volledig gekend
-  saveState(progressPatchForTable(table));
-  celebrateTableMastered(table);
+document.getElementById("btn-session-test").addEventListener("click", () => {
+  startTest(quiz.targetTable);
 });
 document.getElementById("btn-session-new").addEventListener("click", () => {
   startQuiz(quiz.targetTable);
@@ -754,23 +852,162 @@ document.getElementById("btn-lesson-quit").addEventListener("click", () => {
   showScreen("home");
 });
 
-// ---------- Celebration ----------
+// ---------- Toets vóór een tafel officieel "gekend" is ----------
+// Klaar om te oefenen op basis van herhaling (3x na elkaar goed) of een snelle
+// foutloze les betekent nog niet automatisch doorschuiven: eerst moet de toets
+// (10 vragen, 1 per factor, alles juist) gehaald worden.
+
+function showReadyForTest(table) {
+  state.readyForTest[table] = true;
+  saveState({ [`readyForTest.${table}`]: true });
+
+  document.getElementById("celebrate-emoji").textContent = "📝";
+  document.getElementById("celebrate-title").textContent = "Klaar voor de toets!";
+  document.getElementById("celebrate-text").textContent =
+    `Je kent alle sommen van tafel ${table} goed! Tijd om het te bewijzen met een toets.`;
+  const continueBtn = document.getElementById("btn-celebrate-continue");
+  continueBtn.textContent = "Start de toets! 📝";
+  continueBtn.dataset.nextAction = "start-test";
+  continueBtn.dataset.table = table;
+  showScreen("celebrate");
+}
+
+document.getElementById("btn-celebrate-continue").addEventListener("click", () => {
+  const continueBtn = document.getElementById("btn-celebrate-continue");
+  const action = continueBtn.dataset.nextAction;
+  if (action === "learn") {
+    startLesson(state.currentTable);
+  } else if (action === "start-test") {
+    startTest(parseInt(continueBtn.dataset.table, 10));
+  } else {
+    renderHome();
+    showScreen("home");
+  }
+});
+
+function startTest(table) {
+  quiz.mode = "test";
+  quiz.targetTable = table;
+  quiz.testIndex = 0;
+  quiz.testCorrectCount = 0;
+  showScreen("test");
+  nextTestQuestion();
+}
+
+function nextTestQuestion() {
+  const factor = FACTORS[quiz.testIndex]; // vaste volgorde 1 t.e.m. 10, geen herhaling
+  quiz.factor = factor;
+  quiz.correctAnswer = quiz.targetTable * factor;
+  quiz.answer = "";
+  quiz.locked = false;
+
+  document.getElementById("test-question").textContent = `${quiz.targetTable} × ${factor} = ?`;
+  document.getElementById("test-answer-display").textContent = " ";
+  document.getElementById("test-feedback").innerHTML = "";
+  document.getElementById("test-mascot").textContent = "🐸";
+  document.getElementById("test-mascot").className = "mascot";
+  document.getElementById("test-progress").textContent = `Vraag ${quiz.testIndex + 1}/${TEST_LENGTH}`;
+  document.getElementById("test-progress-bar-inner").style.width = Math.round((quiz.testIndex / TEST_LENGTH) * 100) + "%";
+}
+
+document.getElementById("test-keypad").addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn || quiz.locked) return;
+  const key = btn.dataset.key;
+
+  if (key === "back") {
+    quiz.answer = quiz.answer.slice(0, -1);
+  } else if (key === "enter") {
+    submitTestAnswer();
+    return;
+  } else {
+    if (quiz.answer.length < 3) quiz.answer += key;
+  }
+  document.getElementById("test-answer-display").textContent = quiz.answer || " ";
+});
+
+function submitTestAnswer() {
+  if (quiz.answer === "") return;
+  const given = parseInt(quiz.answer, 10);
+  const correct = given === quiz.correctAnswer;
+  quiz.locked = true;
+
+  const feedbackEl = document.getElementById("test-feedback");
+  const mascotEl = document.getElementById("test-mascot");
+  let delay;
+
+  if (correct) {
+    quiz.testCorrectCount += 1;
+    feedbackEl.innerHTML = `<p class="feedback correct">${randomPraise()}</p>`;
+    mascotEl.textContent = randomFrom(MASCOTS.happy);
+    mascotEl.className = "mascot happy";
+    delay = 900;
+  } else {
+    feedbackEl.innerHTML = `<p class="feedback wrong">Niet helemaal! Het juiste antwoord is ${quiz.correctAnswer}.</p><span class="theory-hint">${theoryHintFor(quiz.targetTable, quiz.factor)}</span>`;
+    mascotEl.textContent = "😊";
+    mascotEl.className = "mascot sad";
+    delay = 4500; // langer, zodat de theorie ook echt gelezen kan worden
+  }
+
+  quiz.testIndex += 1;
+  setTimeout(() => {
+    if (quiz.testIndex >= TEST_LENGTH) {
+      finishTest();
+    } else {
+      nextTestQuestion();
+    }
+  }, delay);
+}
+
+function finishTest() {
+  const table = quiz.targetTable;
+  if (quiz.testCorrectCount === TEST_LENGTH) {
+    // Toets gehaald: nu pas telt de tafel als écht gekend.
+    FACTORS.forEach(f => { state.progress[table][f] = MASTERY_STREAK; });
+    saveState(progressPatchForTable(table));
+    celebrateTableMastered(table);
+  } else {
+    state.testBlocked[table] = true;
+    saveState({ [`testBlocked.${table}`]: true });
+    document.getElementById("test-result-text").textContent =
+      `Je had ${quiz.testCorrectCount} van de ${TEST_LENGTH} juist. Nog niet helemaal, maar bijna! Oefen eerst nog een volledige les, dan mag je de toets opnieuw proberen.`;
+    showScreen("testResult");
+  }
+}
+
+document.getElementById("btn-test-quit").addEventListener("click", () => {
+  renderHome();
+  showScreen("home");
+});
+document.getElementById("btn-test-result-home").addEventListener("click", () => {
+  renderHome();
+  showScreen("home");
+});
+
+// ---------- Celebration (na een gehaalde toets) ----------
 
 function celebrateTableMastered(table) {
   const next = nextTableAfter(table);
   if (next !== null) {
     state.currentTable = next;
   }
-  saveState(next !== null ? { currentTable: next } : null);
+  state.readyForTest[table] = false;
+  saveState({
+    ...(next !== null ? { currentTable: next } : {}),
+    [`readyForTest.${table}`]: false,
+  });
 
+  document.getElementById("celebrate-emoji").textContent = "🎉";
   const celebrateText = document.getElementById("celebrate-text");
   const continueBtn = document.getElementById("btn-celebrate-continue");
 
   if (next === null) {
+    document.getElementById("celebrate-title").textContent = "Kampioen!";
     celebrateText.textContent = `Je kent de tafel van ${table} helemaal! Je kent nu alle tafels! 🏆`;
     continueBtn.textContent = "Terug naar start";
     continueBtn.dataset.nextAction = "home";
   } else {
+    document.getElementById("celebrate-title").textContent = "Knap gedaan!";
     celebrateText.textContent = `Je kent de tafel van ${table} helemaal!`;
     continueBtn.textContent = `Leer de tafel van ${next} ➡️`;
     continueBtn.dataset.nextAction = "learn";
@@ -778,20 +1015,18 @@ function celebrateTableMastered(table) {
   showScreen("celebrate");
 }
 
-document.getElementById("btn-celebrate-continue").addEventListener("click", () => {
-  const action = document.getElementById("btn-celebrate-continue").dataset.nextAction;
-  if (action === "learn") {
-    startLesson(state.currentTable);
-  } else {
-    renderHome();
-    showScreen("home");
-  }
-});
-
 // ---------- Settings ----------
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
 
 document.getElementById("btn-settings").addEventListener("click", () => {
   document.getElementById("input-name").value = state.name || "";
+  document.getElementById("input-points-per-lesson").value = state.pointsPerLesson;
+  renderSettingsRewardsList();
   updateSyncStatusUI();
   showScreen("settings");
 });
@@ -807,6 +1042,12 @@ document.getElementById("input-name").addEventListener("input", (e) => {
   state.name = e.target.value.trim();
   saveLocalState();
 });
+document.getElementById("input-points-per-lesson").addEventListener("change", (e) => {
+  const val = Math.max(0, parseInt(e.target.value, 10) || 0);
+  state.pointsPerLesson = val;
+  e.target.value = val;
+  saveState({ pointsPerLesson: val });
+});
 document.getElementById("btn-reset").addEventListener("click", () => {
   if (confirm("Weet je zeker dat je alle voortgang wil wissen?")) {
     const name = state.name;
@@ -816,6 +1057,105 @@ document.getElementById("btn-reset").addEventListener("click", () => {
     renderHome();
     showScreen("home");
   }
+});
+
+// ---------- Rewards beheren (in Instellingen) ----------
+
+function renderSettingsRewardsList() {
+  const container = document.getElementById("settings-rewards-list");
+  container.innerHTML = "";
+  state.rewards.forEach(r => {
+    const row = document.createElement("div");
+    row.className = "reward-manage-row";
+    row.innerHTML = `
+      <input type="text" class="reward-edit-name" data-id="${r.id}" value="${escapeHtml(r.name)}" maxlength="40">
+      <input type="number" class="reward-edit-cost" data-id="${r.id}" value="${r.cost}" min="1" max="10000">
+      <button class="reward-delete-btn" data-id="${r.id}" aria-label="Verwijderen">🗑️</button>
+    `;
+    container.appendChild(row);
+  });
+}
+
+document.getElementById("settings-rewards-list").addEventListener("change", (e) => {
+  const id = e.target.dataset.id;
+  if (!id) return;
+  const reward = state.rewards.find(r => r.id === id);
+  if (!reward) return;
+  if (e.target.classList.contains("reward-edit-name")) {
+    reward.name = e.target.value.trim() || reward.name;
+    e.target.value = reward.name;
+  }
+  if (e.target.classList.contains("reward-edit-cost")) {
+    reward.cost = Math.max(1, parseInt(e.target.value, 10) || 1);
+    e.target.value = reward.cost;
+  }
+  saveState({ rewards: state.rewards });
+});
+
+document.getElementById("settings-rewards-list").addEventListener("click", (e) => {
+  const btn = e.target.closest(".reward-delete-btn");
+  if (!btn) return;
+  state.rewards = state.rewards.filter(r => r.id !== btn.dataset.id);
+  saveState({ rewards: state.rewards });
+  renderSettingsRewardsList();
+});
+
+document.getElementById("btn-add-reward").addEventListener("click", () => {
+  const nameInput = document.getElementById("new-reward-name");
+  const costInput = document.getElementById("new-reward-cost");
+  const name = nameInput.value.trim();
+  const cost = parseInt(costInput.value, 10);
+  if (!name || !cost || cost <= 0) return;
+
+  state.rewards.push({ id: "r" + Date.now() + Math.floor(Math.random() * 1000), name, cost });
+  saveState({ rewards: state.rewards });
+  nameInput.value = "";
+  costInput.value = "";
+  renderSettingsRewardsList();
+});
+
+// ---------- Rewards inwisselen ----------
+
+function renderRewardsScreen() {
+  document.getElementById("rewards-points-balance").textContent = state.points;
+  document.getElementById("reward-redeemed-msg").classList.add("hidden");
+
+  const list = document.getElementById("rewards-list");
+  list.innerHTML = "";
+  if (state.rewards.length === 0) {
+    list.innerHTML = `<p class="hint">Nog geen rewards ingesteld. Vraag een ouder om er een toe te voegen bij Instellingen!</p>`;
+    return;
+  }
+  state.rewards.forEach(r => {
+    const canAfford = state.points >= r.cost;
+    const card = document.createElement("div");
+    card.className = "reward-card";
+    card.innerHTML = `
+      <div>
+        <div class="reward-name">${escapeHtml(r.name)}</div>
+        <div class="reward-cost">⭐ ${r.cost} punten</div>
+      </div>
+      <button class="reward-redeem-btn" data-id="${r.id}" ${canAfford ? "" : "disabled"}>Inwisselen</button>
+    `;
+    list.appendChild(card);
+  });
+}
+
+document.getElementById("rewards-list").addEventListener("click", (e) => {
+  const btn = e.target.closest(".reward-redeem-btn");
+  if (!btn || btn.disabled) return;
+  const reward = state.rewards.find(r => r.id === btn.dataset.id);
+  if (!reward || state.points < reward.cost) return;
+  if (!confirm(`"${reward.name}" inwisselen voor ${reward.cost} punten?`)) return;
+
+  state.points -= reward.cost;
+  saveState({ points: state.points });
+  renderRewardsScreen();
+
+  const msg = document.getElementById("reward-redeemed-msg");
+  msg.textContent = `🎉 "${reward.name}" ingewisseld!`;
+  msg.classList.remove("hidden");
+  setTimeout(() => msg.classList.add("hidden"), 3000);
 });
 
 // ---------- Init ----------

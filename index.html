@@ -43,11 +43,17 @@
       </div>
     </div>
 
+    <button id="btn-open-rewards" class="points-banner">
+      <span>⭐ <span id="home-points-balance">0</span> punten</span>
+      <span class="points-banner-cta">🎁 Rewards →</span>
+    </button>
+
     <p class="subtitle">Hoi <span id="player-name">kampioen</span>!</p>
 
     <button id="btn-start-adaptive" class="big-btn primary">
       <span id="start-btn-label">▶️ Nieuwe les</span>
     </button>
+    <div id="test-available-badge" class="hint hidden">📝 De toets van deze tafel staat klaar!</div>
 
     <h2 class="section-title">Kies zelf een tafel</h2>
     <div id="table-grid" class="table-grid"></div>
@@ -101,20 +107,74 @@
       <h2 id="session-end-title">Les afgerond!</h2>
       <p id="session-end-text">Je hebt 20 sommen geoefend.</p>
       <p id="session-end-suggestion" class="suggestion-box hidden"></p>
-      <button id="btn-session-skip" class="big-btn skip hidden">Ja, naar de volgende tafel! ➡️</button>
+      <button id="btn-session-test" class="big-btn skip hidden">Ja, doe de toets! 📝</button>
       <button id="btn-session-new" class="big-btn primary">Nieuwe les ▶️</button>
       <button id="btn-session-home" class="big-btn secondary">Terug naar start</button>
     </div>
   </section>
 
-  <!-- TABLE MASTERED CELEBRATION -->
+  <!-- TABLE MASTERED CELEBRATION (ook hergebruikt om de toets aan te kondigen) -->
   <section id="screen-celebrate" class="screen hidden">
     <div class="celebrate">
-      <div class="celebrate-emoji">🎉</div>
-      <h2>Knap gedaan!</h2>
+      <div class="celebrate-emoji" id="celebrate-emoji">🎉</div>
+      <h2 id="celebrate-title">Knap gedaan!</h2>
       <p id="celebrate-text">Je kent de tafel van 3 helemaal!</p>
       <button id="btn-celebrate-continue" class="big-btn primary">Ga verder ▶️</button>
     </div>
+  </section>
+
+  <!-- TOETS: 10 vragen, 1 per factor, om echt door te mogen naar de volgende tafel -->
+  <section id="screen-test" class="screen hidden">
+    <div class="topbar">
+      <button id="btn-test-quit" class="icon-btn" aria-label="Terug">⬅️</button>
+      <div class="progress-bar-outer"><div id="test-progress-bar-inner" class="progress-bar-inner"></div></div>
+    </div>
+    <div class="session-progress" id="test-progress">Vraag 1/10</div>
+
+    <div class="quiz-card">
+      <div id="test-mascot" class="mascot">🐸</div>
+      <div id="test-question" class="question">7 × 8 = ?</div>
+      <div id="test-answer-display" class="answer-display">&nbsp;</div>
+      <div id="test-feedback"></div>
+    </div>
+
+    <div id="test-keypad" class="keypad">
+      <button data-key="1">1</button>
+      <button data-key="2">2</button>
+      <button data-key="3">3</button>
+      <button data-key="4">4</button>
+      <button data-key="5">5</button>
+      <button data-key="6">6</button>
+      <button data-key="7">7</button>
+      <button data-key="8">8</button>
+      <button data-key="9">9</button>
+      <button data-key="back" class="key-back">⌫</button>
+      <button data-key="0">0</button>
+      <button data-key="enter" class="key-enter">✔️</button>
+    </div>
+  </section>
+
+  <!-- TOETS NIET GEHAALD -->
+  <section id="screen-test-result" class="screen hidden">
+    <div class="celebrate">
+      <div class="celebrate-emoji">💪</div>
+      <h2>Bijna!</h2>
+      <p id="test-result-text">Je had 7 van de 10 juist.</p>
+      <button id="btn-test-result-home" class="big-btn primary">Terug naar start</button>
+    </div>
+  </section>
+
+  <!-- REWARDS -->
+  <section id="screen-rewards" class="screen hidden">
+    <div class="topbar">
+      <button id="btn-rewards-back" class="icon-btn" aria-label="Terug">⬅️</button>
+      <h1>🎁 Rewards</h1>
+    </div>
+    <div class="points-banner points-banner-static">
+      <span>⭐ <span id="rewards-points-balance">0</span> punten</span>
+    </div>
+    <p id="reward-redeemed-msg" class="suggestion-box hidden"></p>
+    <div id="rewards-list" class="rewards-list"></div>
   </section>
 
   <!-- SETTINGS SCREEN -->
@@ -127,6 +187,20 @@
       Naam van de kampioen
       <input id="input-name" type="text" maxlength="20" placeholder="Bv. Lucas">
     </label>
+
+    <label class="field">
+      Punten per afgewerkte les
+      <input id="input-points-per-lesson" type="number" min="0" max="1000" step="1">
+    </label>
+
+    <h2 class="section-title">Rewards beheren</h2>
+    <div id="settings-rewards-list" class="rewards-manage-list"></div>
+    <div class="reward-add-form">
+      <input id="new-reward-name" type="text" placeholder="Naam (bv. Filmavond kiezen)" maxlength="40">
+      <input id="new-reward-cost" type="number" min="1" max="10000" placeholder="Punten">
+      <button id="btn-add-reward" class="lesson-nav-btn">➕ Toevoegen</button>
+    </div>
+
     <button id="btn-reset" class="big-btn danger">🗑️ Voortgang wissen</button>
     <p class="hint">Dit wist alle sterren en start opnieuw bij tafel 1 (op alle toestellen).</p>
     <p class="hint" id="sync-status">⏳ Cloud-sync wordt gecontroleerd...</p>
