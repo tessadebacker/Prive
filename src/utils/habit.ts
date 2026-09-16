@@ -8,12 +8,46 @@ export function isScheduledOn(frequency: Frequency, dateIso: string): boolean {
   return true; // daily and timesPerWeek are available every day
 }
 
-export function completionDatesFor(habitId: string, completions: Completion[]): Set<string> {
-  const set = new Set<string>();
-  for (const c of completions) {
-    if (c.habitId === habitId) set.add(c.date);
+// Dates the habit was fully completed: for a plain habit, any completion row
+// for it; for one with subtasks, only dates where every subtask was checked.
+export function completionDatesFor(habit: Habit, completions: Completion[]): Set<string> {
+  const relevant = completions.filter((c) => c.habitId === habit.id);
+  if (habit.subtasks.length === 0) {
+    return new Set(relevant.filter((c) => !c.subtaskId).map((c) => c.date));
   }
-  return set;
+  const doneSubtasksByDate = new Map<string, Set<string>>();
+  for (const c of relevant) {
+    if (!c.subtaskId) continue;
+    if (!doneSubtasksByDate.has(c.date)) doneSubtasksByDate.set(c.date, new Set());
+    doneSubtasksByDate.get(c.date)!.add(c.subtaskId);
+  }
+  const allSubtaskIds = habit.subtasks.map((s) => s.id);
+  const fullyDoneDates = new Set<string>();
+  for (const [date, doneIds] of doneSubtasksByDate) {
+    if (allSubtaskIds.every((id) => doneIds.has(id))) fullyDoneDates.add(date);
+  }
+  return fullyDoneDates;
+}
+
+export function isSubtaskDoneOn(
+  habitId: string,
+  subtaskId: string,
+  dateIso: string,
+  completions: Completion[]
+): boolean {
+  return completions.some(
+    (c) => c.habitId === habitId && c.subtaskId === subtaskId && c.date === dateIso
+  );
+}
+
+export function subtaskProgress(
+  habit: Habit,
+  completions: Completion[],
+  dateIso: string = todayISO()
+): { done: number; total: number } | null {
+  if (habit.subtasks.length === 0) return null;
+  const done = habit.subtasks.filter((s) => isSubtaskDoneOn(habit.id, s.id, dateIso, completions)).length;
+  return { done, total: habit.subtasks.length };
 }
 
 export function weekProgress(
@@ -24,7 +58,7 @@ export function weekProgress(
   if (habit.frequency.kind !== 'timesPerWeek') return null;
   const target = habit.frequency.count;
   const weekStart = startOfWeek(onDateIso);
-  const dates = completionDatesFor(habit.id, completions);
+  const dates = completionDatesFor(habit, completions);
   let done = 0;
   for (let i = 0; i < 7; i++) {
     if (dates.has(addDays(weekStart, i))) done++;
@@ -35,7 +69,7 @@ export function weekProgress(
 export function currentStreak(habit: Habit, completions: Completion[]): number {
   if (habit.frequency.kind === 'everyNMonths') return 0; // day/week streaks aren't meaningful at this cadence
 
-  const dates = completionDatesFor(habit.id, completions);
+  const dates = completionDatesFor(habit, completions);
   const today = todayISO();
 
   if (habit.frequency.kind === 'timesPerWeek') {
@@ -99,7 +133,7 @@ export function monthsStatus(
   today: string = todayISO()
 ): MonthsStatus | null {
   if (habit.frequency.kind !== 'everyNMonths') return null;
-  const dates = [...completionDatesFor(habit.id, completions)].sort();
+  const dates = [...completionDatesFor(habit, completions)].sort();
   const lastDone = dates.length > 0 ? dates[dates.length - 1] : null;
   if (!lastDone) return { lastDone: null, nextDue: null, overdue: true };
   const nextDue = addMonths(lastDone, habit.frequency.months);

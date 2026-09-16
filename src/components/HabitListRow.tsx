@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import type { Completion, Habit } from '../types';
 import { formatDateShort } from '../utils/date';
-import { completionDatesFor, currentStreak, frequencyLabel, monthsStatus, weekProgress } from '../utils/habit';
+import {
+  completionDatesFor,
+  currentStreak,
+  frequencyLabel,
+  monthsStatus,
+  subtaskProgress,
+  weekProgress,
+} from '../utils/habit';
 import { WeekDots } from './WeekDots';
 
 export function HabitListRow({
@@ -18,10 +25,11 @@ export function HabitListRow({
   onDelete: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const dates = completionDatesFor(habit.id, completions);
+  const dates = completionDatesFor(habit, completions);
   const streak = currentStreak(habit, completions);
   const week = weekProgress(habit, completions);
   const months = monthsStatus(habit, completions);
+  const subtaskProg = subtaskProgress(habit, completions);
 
   return (
     <div className="card">
@@ -42,6 +50,11 @@ export function HabitListRow({
                 {months.lastDone
                   ? `Last: ${formatDateShort(months.lastDone)} · Next: ${formatDateShort(months.nextDue!)}`
                   : 'Not done yet'}
+              </span>
+            )}
+            {subtaskProg && (
+              <span>
+                {subtaskProg.done}/{subtaskProg.total} sub-habits today
               </span>
             )}
           </div>

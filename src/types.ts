@@ -4,6 +4,11 @@ export type Frequency =
   | { kind: 'specificDays'; days: number[] } // 0 = Sunday .. 6 = Saturday
   | { kind: 'everyNMonths'; months: number };
 
+export interface Subtask {
+  id: string;
+  title: string;
+}
+
 export interface Habit {
   id: string;
   kind: 'habit';
@@ -11,6 +16,7 @@ export interface Habit {
   emoji: string;
   frequency: Frequency;
   points: number;
+  subtasks: Subtask[];
   createdAt: string;
   archived: boolean;
 }
@@ -40,6 +46,7 @@ export interface Goal {
 export interface Completion {
   id: string;
   habitId: string;
+  subtaskId?: string; // set when this completion is for one of the habit's subtasks
   date: string; // YYYY-MM-DD, local
 }
 

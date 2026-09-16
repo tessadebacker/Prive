@@ -8,7 +8,7 @@ import { DailyReminder } from '../components/DailyReminder';
 import type { Tab } from '../components/BottomNav';
 
 export function TodayScreen({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
-  const { state, toggleCompletion, toggleGoalCheckIn } = useStore();
+  const { state, toggleCompletion, setHabitDay, toggleGoalCheckIn } = useStore();
   const today = todayISO();
 
   const dueHabits = state.habits
@@ -44,7 +44,15 @@ export function TodayScreen({ onNavigate }: { onNavigate: (tab: Tab) => void }) 
         ) : (
           <div className="card-list">
             {dueHabits.map((h) => (
-              <TodayHabitRow key={h.id} habit={h} completions={state.completions} onToggle={toggleCompletion} />
+              <TodayHabitRow
+                key={h.id}
+                habit={h}
+                completions={state.completions}
+                onToggle={toggleCompletion}
+                onSetDay={(habitId, date, doneVal) =>
+                  setHabitDay(habitId, date, doneVal, h.subtasks.map((s) => s.id))
+                }
+              />
             ))}
           </div>
         )}

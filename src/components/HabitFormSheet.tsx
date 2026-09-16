@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Sheet } from './Sheet';
-import type { Frequency, Habit } from '../types';
+import type { Frequency, Habit, Subtask } from '../types';
 import { DAY_LABELS, HABIT_EMOJIS } from '../types';
+import { uid } from '../utils/id';
 
 type FreqKind = Frequency['kind'];
 
@@ -11,7 +12,13 @@ export function HabitFormSheet({
   onClose,
 }: {
   habit?: Habit;
-  onSave: (input: { title: string; emoji: string; frequency: Frequency; points: number }) => void;
+  onSave: (input: {
+    title: string;
+    emoji: string;
+    frequency: Frequency;
+    points: number;
+    subtasks: Subtask[];
+  }) => void;
   onClose: () => void;
 }) {
   const [title, setTitle] = useState(habit?.title ?? '');
@@ -27,6 +34,8 @@ export function HabitFormSheet({
     habit?.frequency.kind === 'everyNMonths' ? habit.frequency.months : 3
   );
   const [points, setPoints] = useState(habit?.points ?? 10);
+  const [subtasks, setSubtasks] = useState<Subtask[]>(habit?.subtasks ?? []);
+  const [newSubtask, setNewSubtask] = useState('');
 
   const canSave =
     title.trim().length > 0 && (freqKind !== 'specificDays' || days.length > 0);
@@ -40,6 +49,17 @@ export function HabitFormSheet({
 
   function toggleDay(d: number) {
     setDays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]));
+  }
+
+  function addSubtask() {
+    const title = newSubtask.trim();
+    if (!title) return;
+    setSubtasks((prev) => [...prev, { id: uid(), title }]);
+    setNewSubtask('');
+  }
+
+  function removeSubtask(id: string) {
+    setSubtasks((prev) => prev.filter((s) => s.id !== id));
   }
 
   return (
@@ -154,7 +174,46 @@ export function HabitFormSheet({
       )}
 
       <div className="field">
-        <label>Points per completion</label>
+        <label>Sub-habits (optional)</label>
+        {subtasks.length > 0 && (
+          <div className="milestone-list" style={{ marginBottom: 8 }}>
+            {subtasks.map((s) => (
+              <div key={s.id} className="milestone-row" style={{ justifyContent: 'space-between' }}>
+                <span className="mtext">{s.title}</span>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  style={{ width: 24, height: 24, fontSize: 12 }}
+                  onClick={() => removeSubtask(s.id)}
+                  aria-label={`Remove ${s.title}`}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <form
+          className="inline-add-row"
+          onSubmit={(e) => {
+            e.preventDefault();
+            addSubtask();
+          }}
+        >
+          <input
+            type="text"
+            placeholder="e.g. Clean the toilet"
+            value={newSubtask}
+            onChange={(e) => setNewSubtask(e.target.value)}
+          />
+          <button className="btn btn-secondary btn-sm" type="submit">
+            Add
+          </button>
+        </form>
+      </div>
+
+      <div className="field">
+        <label>{subtasks.length > 0 ? 'Points for completing all sub-habits' : 'Points per completion'}</label>
         <div className="stepper">
           <button type="button" onClick={() => setPoints((n) => Math.max(1, n - 5))}>
             −
@@ -173,7 +232,9 @@ export function HabitFormSheet({
         <button
           className="btn btn-primary btn-block"
           disabled={!canSave}
-          onClick={() => onSave({ title: title.trim(), emoji, frequency: buildFrequency(), points })}
+          onClick={() =>
+            onSave({ title: title.trim(), emoji, frequency: buildFrequency(), points, subtasks })
+          }
         >
           Save
         </button>

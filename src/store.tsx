@@ -1,12 +1,9 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react';
-import type { AppState, Frequency, Goal, Habit, Milestone, Reward } from './types';
+import type { AppState, Completion, Frequency, Goal, Habit, Milestone, Reward, Subtask } from './types';
 import { todayISO } from './utils/date';
+import { uid } from './utils/id';
 
 const STORAGE_KEY = 'aim-tracker-state-v1';
-
-function uid(): string {
-  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-}
 
 const initialState: AppState = {
   habits: [],
@@ -22,7 +19,10 @@ function loadState(): AppState {
     if (!raw) return initialState;
     const parsed = JSON.parse(raw);
     return {
-      habits: parsed.habits ?? [],
+      habits: (parsed.habits ?? []).map((h: Omit<Habit, 'subtasks'> & { subtasks?: Subtask[] }) => ({
+        subtasks: [],
+        ...h,
+      })),
       goals: parsed.goals ?? [],
       completions: parsed.completions ?? [],
       goalCheckIns: parsed.goalCheckIns ?? [],
@@ -38,7 +38,8 @@ type Action =
   | { type: 'UPDATE_HABIT'; id: string; patch: Partial<Habit> }
   | { type: 'ARCHIVE_HABIT'; id: string; archived: boolean }
   | { type: 'DELETE_HABIT'; id: string }
-  | { type: 'TOGGLE_COMPLETION'; habitId: string; date: string }
+  | { type: 'TOGGLE_COMPLETION'; habitId: string; date: string; subtaskId?: string }
+  | { type: 'SET_HABIT_DAY'; habitId: string; date: string; done: boolean; subtaskIds: string[] }
   | { type: 'ADD_GOAL'; goal: Goal }
   | { type: 'UPDATE_GOAL'; id: string; patch: Partial<Goal> }
   | { type: 'ARCHIVE_GOAL'; id: string; archived: boolean }
@@ -75,24 +76,38 @@ function reducer(state: AppState, action: Action): AppState {
         completions: state.completions.filter((c) => c.habitId !== action.id),
       };
     case 'TOGGLE_COMPLETION': {
-      const exists = state.completions.some(
-        (c) => c.habitId === action.habitId && c.date === action.date
-      );
+      const matches = (c: Completion) =>
+        c.habitId === action.habitId &&
+        c.date === action.date &&
+        (c.subtaskId ?? null) === (action.subtaskId ?? null);
+      const exists = state.completions.some(matches);
       if (exists) {
-        return {
-          ...state,
-          completions: state.completions.filter(
-            (c) => !(c.habitId === action.habitId && c.date === action.date)
-          ),
-        };
+        return { ...state, completions: state.completions.filter((c) => !matches(c)) };
       }
       return {
         ...state,
         completions: [
           ...state.completions,
-          { id: uid(), habitId: action.habitId, date: action.date },
+          { id: uid(), habitId: action.habitId, date: action.date, subtaskId: action.subtaskId },
         ],
       };
+    }
+    case 'SET_HABIT_DAY': {
+      let completions = state.completions.filter(
+        (c) => !(c.habitId === action.habitId && c.date === action.date && c.subtaskId)
+      );
+      if (action.done) {
+        completions = [
+          ...completions,
+          ...action.subtaskIds.map((subtaskId) => ({
+            id: uid(),
+            habitId: action.habitId,
+            date: action.date,
+            subtaskId,
+          })),
+        ];
+      }
+      return { ...state, completions };
     }
     case 'ADD_GOAL':
       return { ...state, goals: [...state.goals, action.goal] };
@@ -192,11 +207,18 @@ function reducer(state: AppState, action: Action): AppState {
 
 interface StoreContextValue {
   state: AppState;
-  addHabit: (input: { title: string; emoji: string; frequency: Frequency; points: number }) => void;
+  addHabit: (input: {
+    title: string;
+    emoji: string;
+    frequency: Frequency;
+    points: number;
+    subtasks: Subtask[];
+  }) => void;
   updateHabit: (id: string, patch: Partial<Habit>) => void;
   archiveHabit: (id: string, archived: boolean) => void;
   deleteHabit: (id: string) => void;
-  toggleCompletion: (habitId: string, date: string) => void;
+  toggleCompletion: (habitId: string, date: string, subtaskId?: string) => void;
+  setHabitDay: (habitId: string, date: string, done: boolean, subtaskIds: string[]) => void;
   addGoal: (input: {
     title: string;
     emoji: string;
@@ -241,6 +263,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             emoji: input.emoji,
             frequency: input.frequency,
             points: input.points,
+            subtasks: input.subtasks,
             createdAt: todayISO(),
             archived: false,
           },
@@ -248,7 +271,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       updateHabit: (id, patch) => dispatch({ type: 'UPDATE_HABIT', id, patch }),
       archiveHabit: (id, archived) => dispatch({ type: 'ARCHIVE_HABIT', id, archived }),
       deleteHabit: (id) => dispatch({ type: 'DELETE_HABIT', id }),
-      toggleCompletion: (habitId, date) => dispatch({ type: 'TOGGLE_COMPLETION', habitId, date }),
+      toggleCompletion: (habitId, date, subtaskId) =>
+        dispatch({ type: 'TOGGLE_COMPLETION', habitId, date, subtaskId }),
+      setHabitDay: (habitId, date, done, subtaskIds) =>
+        dispatch({ type: 'SET_HABIT_DAY', habitId, date, done, subtaskIds }),
       addGoal: (input) =>
         dispatch({
           type: 'ADD_GOAL',

@@ -1,11 +1,13 @@
 import type { AppState } from '../types';
+import { completionDatesFor } from './habit';
 
 const POINTS_PER_LEVEL = 100;
 
 export function totalPointsEarned(state: AppState): number {
-  const habitPoints = state.completions.reduce((sum, c) => {
-    const habit = state.habits.find((h) => h.id === c.habitId);
-    return sum + (habit ? habit.points : 0);
+  // Points per day the habit was fully completed — for a habit with
+  // subtasks, that means every subtask, not just any one of them.
+  const habitPoints = state.habits.reduce((sum, habit) => {
+    return sum + completionDatesFor(habit, state.completions).size * habit.points;
   }, 0);
   const goalAchievedPoints = state.goals
     .filter((g) => g.achieved)

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useStore } from '../store';
 import { HabitFormSheet } from '../components/HabitFormSheet';
 import { HabitListRow } from '../components/HabitListRow';
-import type { Habit } from '../types';
+import type { Habit, Subtask } from '../types';
 
 export function HabitsScreen() {
   const { state, addHabit, updateHabit, archiveHabit, deleteHabit } = useStore();
@@ -23,7 +23,13 @@ export function HabitsScreen() {
     setFormOpen(true);
   }
 
-  function handleSave(input: { title: string; emoji: string; frequency: Habit['frequency']; points: number }) {
+  function handleSave(input: {
+    title: string;
+    emoji: string;
+    frequency: Habit['frequency'];
+    points: number;
+    subtasks: Subtask[];
+  }) {
     if (editing) {
       updateHabit(editing.id, input);
     } else {
